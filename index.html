@@ -338,6 +338,23 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
 .sa{background:#ffedd5;color:#9a3412;border-color:#fdba74;}
 .db{background:none;border:none;color:#d1d5db;cursor:pointer;font-size:18px;line-height:1;padding:0 4px;border-radius:3px;transition:all .1s;}
 .db:hover{color:var(--red);background:var(--rl);}
+.it-main.acc-open td{background:rgba(239,246,255,0.92);}
+tr.it-acc td{background:var(--grl);padding:16px 18px !important;border-top:none !important;}
+.it-acc-w{max-width:920px;}
+.it-acc-hdr{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.it-acc-grid{display:grid;grid-template-columns:140px 1fr;gap:10px 14px;align-items:start;margin-top:12px;}
+.it-acc-grid label{font-size:12px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:0.06em;padding-top:8px;}
+.it-acc-meta{font-size:11px;color:var(--tt);}
+.it-drag-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px !important;width:52px;}
+.it-drag-h{cursor:grab;color:var(--tt);font-size:15px;line-height:1;letter-spacing:-2px;user-select:none;padding:4px;border-radius:6px;}
+.it-drag-h:active{cursor:grabbing;}
+.it-nudge{display:flex;flex-direction:column;gap:2px;}
+.it-nudge-btn{background:var(--grl);border:1px solid var(--grb);border-radius:4px;font-size:11px;line-height:1;padding:3px 6px;cursor:pointer;color:var(--tm);}
+.it-nudge-btn:hover{background:white;border-color:var(--tm);color:var(--text);}
+.it-nudge-btn:disabled{opacity:.35;cursor:not-allowed;}
+.it-acc-tog{background:none;border:none;cursor:pointer;font-size:12px;color:var(--tm);padding:4px;border-radius:6px;line-height:1;}
+.it-acc-tog:hover{color:var(--text);background:rgba(0,0,0,0.06);}
+tr.it-dragging{opacity:0.55;}
 .mg{display:none;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;}
 .mt{background:white;border:1px solid var(--grb);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .15s;position:relative;}
 .mt:hover{box-shadow:0 4px 14px rgba(0,0,0,0.1);transform:translateY(-1px);}
@@ -1339,7 +1356,7 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
       <div class="weather-location">Hot Shops · Omaha, NE</div>
     </div>
     <div class="weather-details" id="WX-details"></div>
-    <button class="weather-refresh" onclick="fetchWeather()">↺ Refresh</button>
+    <button class="weather-refresh" onclick="fetchWeather(true)">↺ Refresh</button>
   </div>
   <div class="forecast-strip" id="WX-forecast" style="margin-bottom:14px;"></div>
 
@@ -1820,7 +1837,7 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
   <div class="cx" id="cx-fb"></div>
   <div class="sh">Inventory <button class="ab" onclick="addItem('fb')">+ Add item</button></div>
   <div id="comm-budget-bar-fb"></div>
-  <div class="iw"><table class="it" id="tbl-fb"><thead><tr><th style="width:72px"></th><th style="width:22%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:12%">Est. Budget</th><th style="width:12%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
+  <div class="iw"><table class="it" id="tbl-fb"><thead><tr><th style="width:52px" title="Drag ⋮⋮ or use arrows">Order</th><th style="width:34px"></th><th style="width:56px"></th><th style="width:20%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:11%">Est. Budget</th><th style="width:11%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
   <div class="mg" id="mg-fb"></div>
   <div class="sh">Responsibilities</div><div class="rl" id="rl-fb"></div>
 </div>
@@ -1829,7 +1846,7 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
   <div class="cx" id="cx-inv"></div>
   <div class="sh">Inventory <button class="ab" onclick="addItem('inv')">+ Add item</button></div>
   <div id="comm-budget-bar-inv"></div>
-  <div class="iw"><table class="it" id="tbl-inv"><thead><tr><th style="width:72px"></th><th style="width:22%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:12%">Est. Budget</th><th style="width:12%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
+  <div class="iw"><table class="it" id="tbl-inv"><thead><tr><th style="width:52px" title="Drag ⋮⋮ or use arrows">Order</th><th style="width:34px"></th><th style="width:56px"></th><th style="width:20%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:11%">Est. Budget</th><th style="width:11%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
   <div class="mg" id="mg-inv"></div>
   <div class="sh">Responsibilities</div><div class="rl" id="rl-inv"></div>
 </div>
@@ -1838,7 +1855,7 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
   <div class="cx" id="cx-mkt"></div>
   <div class="sh">Inventory <button class="ab" onclick="addItem('mkt')">+ Add item</button></div>
   <div id="comm-budget-bar-mkt"></div>
-  <div class="iw"><table class="it" id="tbl-mkt"><thead><tr><th style="width:72px"></th><th style="width:22%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:12%">Est. Budget</th><th style="width:12%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
+  <div class="iw"><table class="it" id="tbl-mkt"><thead><tr><th style="width:52px" title="Drag ⋮⋮ or use arrows">Order</th><th style="width:34px"></th><th style="width:56px"></th><th style="width:20%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:11%">Est. Budget</th><th style="width:11%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
   <div class="mg" id="mg-mkt"></div>
   <div class="sh">Responsibilities</div><div class="rl" id="rl-mkt"></div>
 </div>
@@ -1847,7 +1864,7 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
   <div class="cx" id="cx-gx"></div>
   <div class="sh">Inventory <button class="ab" onclick="addItem('gx')">+ Add item</button></div>
   <div id="comm-budget-bar-gx"></div>
-  <div class="iw"><table class="it" id="tbl-gx"><thead><tr><th style="width:72px"></th><th style="width:22%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:12%">Est. Budget</th><th style="width:12%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
+  <div class="iw"><table class="it" id="tbl-gx"><thead><tr><th style="width:52px" title="Drag ⋮⋮ or use arrows">Order</th><th style="width:34px"></th><th style="width:56px"></th><th style="width:20%">Item</th><th style="width:8%">Qty</th><th style="width:11%">Status</th><th style="width:11%">Est. Budget</th><th style="width:11%">Actual Spend</th><th>Notes</th><th style="width:32px"></th></tr></thead><tbody></tbody></table></div>
   <div class="mg" id="mg-gx"></div>
   <div class="sh">Responsibilities</div><div class="rl" id="rl-gx"></div>
 </div>
@@ -1871,6 +1888,7 @@ const sb=supabase.createClient(SBU,SBK);
 let items=[],resps=[],sponsors=[],budgetAreas=[],receipts=[],receiptItems=[],assets=[];
 // shifts declared in Event Day Engine above
 let focId=null,cId=null,cK=null,editSpId=null,currentReceipt=null,assetFilter='all';
+let expandedInvId=null;
 
 // ── CONTACTS (for committee panels) ──
 const CX={
@@ -2644,31 +2662,80 @@ function renderCx(k){
   el.innerHTML=h;
 }
 
+async function persistItemOrder(k,orderedIds){
+  orderedIds.forEach((id,i)=>{const it=items.find(x=>x.id===id);if(it)it.sort_order=i+1;});
+  await Promise.all(orderedIds.map((id,i)=>sb.from('items').update({sort_order:i+1}).eq('id',id)));
+  rT(k);rG(k);rOV();
+}
+async function nudgeItemOrder(k,id,delta){
+  const ord=items.filter(i=>i.committee===k).sort((a,b)=>a.sort_order-b.sort_order).map(i=>i.id);
+  const idx=ord.indexOf(id),ni=idx+delta;
+  if(idx<0||ni<0||ni>=ord.length)return;
+  const o=[...ord];[o[idx],o[ni]]=[o[ni],o[idx]];
+  await persistItemOrder(k,o);
+}
+async function reorderItemBefore(k,dragId,beforeId){
+  let ord=items.filter(i=>i.committee===k).sort((a,b)=>a.sort_order-b.sort_order).map(i=>i.id);
+  ord=ord.filter(id=>id!==dragId);
+  const ins=ord.indexOf(beforeId);
+  if(ins<0)return;
+  ord.splice(ins,0,dragId);
+  await persistItemOrder(k,ord);
+}
+function setInvAccOpen(id,k,open){
+  const tbody=document.querySelector('#tbl-'+k+' tbody');if(!tbody)return;
+  tbody.querySelectorAll('tr.it-acc').forEach(a=>{a.style.display='none';});
+  tbody.querySelectorAll('tr.it-main').forEach(m=>m.classList.remove('acc-open'));
+  tbody.querySelectorAll('.it-acc-tog').forEach(b=>{b.textContent='▶';b.setAttribute('aria-expanded','false');});
+  expandedInvId=null;
+  if(open&&id){
+    const main=tbody.querySelector(`tr.it-main[data-item-id="${id}"]`);
+    const acc=main?.nextElementSibling;
+    const btn=main?.querySelector('.it-acc-tog');
+    if(main&&acc?.classList.contains('it-acc')){
+      acc.style.display='table-row';
+      main.classList.add('acc-open');
+      if(btn){btn.textContent='▼';btn.setAttribute('aria-expanded','true');}
+      expandedInvId=id;
+    }
+  }
+}
+function toggleInvAcc(e,id,k){if(e)e.stopPropagation();if(expandedInvId===id)setInvAccOpen(null,k,false);else setInvAccOpen(id,k,true);}
+
 function rT(k){
   const tbody=document.querySelector('#tbl-'+k+' tbody');if(!tbody)return;
+  const keepOpen=expandedInvId;expandedInvId=null;
   const rows=items.filter(i=>i.committee===k).sort((a,b)=>a.sort_order-b.sort_order);
+  const nTot=rows.length;
   tbody.innerHTML='';
-  rows.forEach(item=>{
-    const tr=document.createElement('tr');tr.dataset.id=item.id;
+  rows.forEach((item,idx)=>{
+    const pri=idx+1;
     const est=Number(item.estimated_budget||0);
     const act=Number(item.actual_spend||0);
     const locked=item.spend_locked||false;
     const variance=est>0?act-est:null;
-    const varClass=variance===null?'':'';
     const varStyle=variance===null?'color:var(--tm)':(variance>0?'color:var(--red);font-weight:600':'color:var(--green);font-weight:600');
     const varText=variance===null?'':(variance>0?`▲ ${fmt$(Math.abs(variance))}`:(variance<0?`▼ ${fmt$(Math.abs(variance))}`:'On budget'));
-    const actStyle=act>est&&est>0?'color:var(--red)':'color:var(--text)';
+    const tr=document.createElement('tr');tr.className='it-main';tr.dataset.itemId=item.id;tr.setAttribute('draggable','true');
     tr.innerHTML=`
-      <td class="ic" onclick="openCard('${item.id}','${k}')">${thumbHtml(item.id,item.name)}</td>
-      <td><input class="ni" type="text" value="${esc(item.name)}" placeholder="Item name" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','name',this.value)"></td>
-      <td><input class="qi" type="text" value="${esc(item.qty)}" placeholder="—" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','qty',this.value)"></td>
-      <td><select class="ssel ${scls(item.status)}" onchange="uf('${item.id}','status',this.value);this.className='ssel '+scls(this.value)">
+      <td class="it-drag-cell">
+        <span class="it-drag-h" title="Drag to reorder priority">⋮⋮</span>
+        <div class="it-nudge">
+          <button type="button" class="it-nudge-btn" onclick="event.stopPropagation();nudgeItemOrder('${k}','${item.id}',-1)" aria-label="Move up"${idx===0?' disabled':''}>↑</button>
+          <button type="button" class="it-nudge-btn" onclick="event.stopPropagation();nudgeItemOrder('${k}','${item.id}',1)" aria-label="Move down"${idx>=nTot-1?' disabled':''}>↓</button>
+        </div>
+      </td>
+      <td><button type="button" class="it-acc-tog" aria-expanded="false" aria-label="Expand details" onclick="toggleInvAcc(event,'${item.id}','${k}')">▶</button></td>
+      <td class="ic" onclick="event.stopPropagation();openCard('${item.id}','${k}')">${thumbHtml(item.id,item.name)}</td>
+      <td><input class="ni" type="text" value="${esc(item.name)}" placeholder="Item name" onclick="event.stopPropagation()" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','name',this.value)"></td>
+      <td><input class="qi" type="text" value="${esc(item.qty)}" placeholder="—" onclick="event.stopPropagation()" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','qty',this.value)"></td>
+      <td><select class="ssel ${scls(item.status)}" onclick="event.stopPropagation()" onchange="uf('${item.id}','status',this.value);this.className='ssel '+scls(this.value)">
         <option value="tbd" ${item.status==='tbd'?'selected':''}>TBD</option>
         <option value="sourced" ${item.status==='sourced'?'selected':''}>Sourced ✓</option>
         <option value="donated" ${item.status==='donated'?'selected':''}>Donated</option>
         <option value="attention" ${item.status==='attention'?'selected':''}>Needs attention</option>
       </select></td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <div style="display:flex;align-items:center;gap:4px;">
           <span style="color:var(--tm);font-size:13px;">$</span>
           <input class="bi" type="number" min="0" step="0.01" value="${est||''}" placeholder="0.00"
@@ -2677,7 +2744,7 @@ function rT(k){
             style="width:80px;border:1px solid var(--grb);border-radius:6px;padding:5px 7px;font-family:var(--font);font-size:13px;outline:none;background:white;">
         </div>
       </td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:3px;">
             <span style="color:var(--tm);font-size:13px;">$</span>
@@ -2691,11 +2758,58 @@ function rT(k){
           ${variance!==null?`<span style="font-size:11px;${varStyle};white-space:nowrap;">${varText}</span>`:''}
         </div>
       </td>
-      <td><input class="noi" type="text" value="${esc(item.note)}" placeholder="Notes…" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','note',this.value)"></td>
-      <td><button class="db" onclick="delItem('${item.id}')">×</button></td>`;
+      <td><input class="noi" type="text" value="${esc(item.note)}" placeholder="Notes…" onclick="event.stopPropagation()" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','note',this.value)"></td>
+      <td onclick="event.stopPropagation()"><button class="db" onclick="delItem('${item.id}')">×</button></td>`;
+    tr.addEventListener('dragstart',e=>{
+      if(!e.target.closest('.it-drag-h')){e.preventDefault();return;}
+      e.dataTransfer.setData('text/plain',item.id);e.dataTransfer.effectAllowed='move';tr.classList.add('it-dragging');
+    });
+    tr.addEventListener('dragend',()=>tr.classList.remove('it-dragging'));
+    tr.addEventListener('dragover',e=>{e.preventDefault();});
+    tr.addEventListener('drop',e=>{
+      e.preventDefault();
+      const fromId=e.dataTransfer.getData('text/plain');
+      if(!fromId||fromId===item.id)return;
+      reorderItemBefore(k,fromId,item.id).catch(()=>{});
+    });
     tbody.appendChild(tr);
+    const meta=(item.created_at||item.updated_at)?`<div class="it-acc-meta">Record ${item.updated_at?'updated':'added'} ${new Date(item.updated_at||item.created_at).toLocaleString()}</div>`:'';
+    const acc=document.createElement('tr');acc.className='it-acc';acc.style.display='none';acc.dataset.itemId=item.id;
+    acc.innerHTML=`<td colspan="10">
+      <div class="it-acc-w">
+        <div class="it-acc-hdr">
+          <span style="font-family:var(--font-condensed);font-size:18px;font-weight:700;color:var(--text);">${esc(item.name)||'Untitled item'}</span>
+          <span style="font-size:13px;color:var(--tm);font-weight:600;">Priority ${pri} of ${nTot}</span>
+        </div>
+        <p style="font-size:12px;color:var(--tm);margin:0 0 4px 0;">Committee inventory — anyone on the team with access to this dashboard can edit (same as the row above).</p>
+        ${meta}
+        <div class="it-acc-grid">
+          <label>Notes</label>
+          <textarea class="mi ta" rows="4" placeholder="Timing, vendors, risks…" onclick="event.stopPropagation()" onfocus="focId='${item.id}'" onblur="focId=null" onchange="uf('${item.id}','note',this.value)">${esc(item.note)}</textarea>
+          <label>Qty</label>
+          <input class="mi" type="text" value="${esc(item.qty)}" onclick="event.stopPropagation()" onchange="uf('${item.id}','qty',this.value)">
+          <label>Status</label>
+          <select class="mi" style="padding:10px 12px;" onclick="event.stopPropagation()" onchange="uf('${item.id}','status',this.value)">
+            <option value="tbd" ${item.status==='tbd'?'selected':''}>TBD</option>
+            <option value="sourced" ${item.status==='sourced'?'selected':''}>Sourced ✓</option>
+            <option value="donated" ${item.status==='donated'?'selected':''}>Donated</option>
+            <option value="attention" ${item.status==='attention'?'selected':''}>Needs attention</option>
+          </select>
+          <label>Est. budget</label>
+          <input class="mi" type="number" min="0" step="0.01" value="${est||''}" onclick="event.stopPropagation()" onchange="ufBudget('${item.id}','estimated_budget',this.value)">
+          <label>Actual spend</label>
+          <div onclick="event.stopPropagation()"><input class="mi" type="number" min="0" step="0.01" value="${act||''}" onclick="event.stopPropagation()" onchange="ufSpend('${item.id}',this.value)" style="max-width:200px;display:inline-block;">
+          ${locked?` <button type="button" class="hbtn" style="margin-left:8px;padding:6px 10px;font-size:12px;" onclick="unlockSpend('${item.id}')">Unlock auto from receipts</button>`:''}</div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="hbtn" onclick="event.stopPropagation();openCard('${item.id}','${k}')" style="padding:8px 14px;">Gallery / full card</button>
+          <span style="font-size:11px;color:var(--tt);">ID ${item.id.slice(0,8)}…</span>
+        </div>
+      </div>
+    </td>`;
+    tbody.appendChild(acc);
   });
-  // Refresh the budget bar for this committee
+  if(keepOpen&&items.some(i=>i.id===keepOpen&&i.committee===k))setInvAccOpen(keepOpen,k,true);
   const bar=document.getElementById('comm-budget-bar-'+k);
   if(bar) bar.innerHTML=rCommBudgetBar(k);
 }
@@ -2963,7 +3077,27 @@ function mfc(field,value){
 
 // ── DB OPS ──
 const dbt={};
-async function uf(id,field,value){const item=items.find(i=>i.id===id);if(item)item[field]=value;if(field==='name'){refreshThumb(id,value);rG(items.find(i=>i.id===id)?.committee);}rOV();clearTimeout(dbt['i'+id+field]);dbt['i'+id+field]=setTimeout(async()=>await sb.from('items').update({[field]:value}).eq('id',id),600);}
+function syncInvDuplicateFields(id,k){
+  const item=items.find(i=>i.id===id);if(!item||!k)return;
+  const main=document.querySelector(`#tbl-${k} tr.it-main[data-item-id="${id}"]`);
+  const acc=document.querySelector(`#tbl-${k} tr.it-acc[data-item-id="${id}"]`);
+  if(main){
+    const ni=main.querySelector('.ni');if(ni)ni.value=item.name||'';
+    const qi=main.querySelector('.qi');if(qi)qi.value=item.qty||'';
+    const noi=main.querySelector('.noi');if(noi)noi.value=item.note||'';
+    const ss=main.querySelector('.ssel');if(ss){ss.value=item.status||'tbd';ss.className='ssel '+scls(item.status);}
+  }
+  if(acc){
+    const ta=acc.querySelector('textarea.mi.ta');if(ta)ta.value=item.note||'';
+    const qtyIn=acc.querySelector('input.mi[type="text"]');if(qtyIn)qtyIn.value=item.qty||'';
+    const sel=acc.querySelector('select.mi');if(sel)sel.value=item.status||'tbd';
+    const nums=acc.querySelectorAll('input.mi[type="number"]');
+    if(nums[0])nums[0].value=item.estimated_budget!=null&&item.estimated_budget!==''?Number(item.estimated_budget):'';
+    if(nums[1])nums[1].value=item.actual_spend!=null&&item.actual_spend!==''?Number(item.actual_spend):'';
+    const hdr=acc.querySelector('.it-acc-hdr span:first-child');if(hdr)hdr.textContent=item.name||'Untitled item';
+  }
+}
+async function uf(id,field,value){const item=items.find(i=>i.id===id);if(item)item[field]=value;if(['name','qty','note','status'].includes(field)&&item)syncInvDuplicateFields(id,item.committee);if(field==='name'){refreshThumb(id,value);rG(items.find(i=>i.id===id)?.committee);}rOV();clearTimeout(dbt['i'+id+field]);dbt['i'+id+field]=setTimeout(async()=>await sb.from('items').update({[field]:value}).eq('id',id),600);}
 async function tr2(id,done){const r=resps.find(r=>r.id===id);if(r)r.done=done;const el=document.querySelector(`.ri[data-id="${id}"]`);if(el){el.classList.toggle('done',done);el.querySelector('.rt').style.textDecoration=done?'line-through':'';}rOV();await sb.from('responsibilities').update({done}).eq('id',id);}
 async function addItem(k){const max=Math.max(0,...items.filter(i=>i.committee===k).map(i=>i.sort_order));const{data:nr}=await sb.from('items').insert({committee:k,name:'',qty:'',status:'tbd',note:'',sort_order:max+1}).select().single();if(nr){items.push(nr);rT(k);rG(k);setTimeout(()=>document.querySelector('#tbl-'+k+' tbody tr:last-child input')?.focus(),50);}}
 async function delItem(id){const item=items.find(i=>i.id===id);if(!item)return;items=items.filter(i=>i.id!==id);rT(item.committee);rG(item.committee);rOV();await sb.from('items').delete().eq('id',id);}
@@ -4628,94 +4762,111 @@ async function checkInSafe(id) {
 window.checkIn = checkInSafe;
 
 // ══════════════════════════════════════
-// ── WEATHER ──
+// ── WEATHER (live: Open-Meteo, no API key; alerts: api.weather.gov when CORS allows)
 // ══════════════════════════════════════
-const WX_LAT = 41.2565;
-const WX_LON = -95.9345;
-const WX_API_KEY = 'PASTE_YOUR_OPENWEATHERMAP_KEY_HERE'; // free at openweathermap.org
+const WX_LAT = 41.2688;
+const WX_LON = -95.9277;
 let wxLastFetch = 0;
 let wxData = null;
 
-const WX_ICONS = {
-  '01':'☀️','02':'⛅','03':'🌥️','04':'☁️',
-  '09':'🌧️','10':'🌦️','11':'⛈️','13':'❄️','50':'🌫️'
-};
+function wmoEmoji(code){
+  const c=Number(code);
+  if(c===0)return'☀️';if(c===1)return'🌤️';if(c===2)return'⛅';if(c===3)return'☁️';
+  if(c<=48)return'🌫️';if(c<=57)return'🌦️';if(c<=67)return'🌧️';if(c<=77)return'❄️';
+  if(c<=82)return'🌦️';if(c<=86)return'⛈️';if(c<=99)return'⛈️';return'🌡️';
+}
+function wmoDescription(code){
+  const c=Number(code);
+  if(c===0)return'Clear sky';if(c===1)return'Mainly clear';if(c===2)return'Partly cloudy';if(c===3)return'Overcast';
+  if(c<=48)return'Fog';if(c<=57)return'Drizzle';if(c<=67)return'Rain';if(c<=77)return'Snow';
+  if(c<=82)return'Showers';if(c<=99)return'Thunderstorm';return'Current conditions';
+}
 
-async function fetchWeather() {
-  if (!isOnline) { document.getElementById('WX-desc').textContent = 'Offline — no weather data'; return; }
-  const now = Date.now();
-  if (now - wxLastFetch < 600000 && wxData) { renderWeather(wxData); return; } // cache 10 min
-  if (WX_API_KEY === 'PASTE_YOUR_OPENWEATHERMAP_KEY_HERE') {
-    renderWeatherMock(); return; // demo mode
-  }
-  try {
-    const r = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${WX_LAT}&lon=${WX_LON}&exclude=minutely,daily&units=imperial&appid=${WX_API_KEY}`);
-    wxData = await r.json();
-    wxLastFetch = now;
+async function fetchWeather(force){
+  const descEl=document.getElementById('WX-desc');
+  if(!isOnline){descEl.textContent='Offline — no weather data';return;}
+  const now=Date.now();
+  if(!force&&now-wxLastFetch<600000&&wxData){renderWeather(wxData);return;}
+  descEl.textContent='Loading weather…';
+  try{
+    const omUrl=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}`+
+      `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index`+
+      `&hourly=temperature_2m,weather_code`+
+      `&forecast_hours=24&timezone=America%2FChicago&wind_speed_unit=mph&temperature_unit=fahrenheit`;
+    const om=await fetch(omUrl).then(r=>{if(!r.ok)throw new Error('wx');return r.json();});
+    const cur=om.current,h=om.hourly;
+    const hourly=[];
+    if(h&&h.time&&h.temperature_2m){
+      for(let i=0;i<Math.min(8,h.time.length);i++){
+        hourly.push({
+          dtMs:new Date(h.time[i]).getTime(),
+          temp:h.temperature_2m[i],
+          weather_code:h.weather_code?h.weather_code[i]:cur.weather_code
+        });
+      }
+    }
+    wxData={
+      current:{
+        temp:cur.temperature_2m,
+        feels_like:cur.apparent_temperature,
+        humidity:cur.relative_humidity_2m,
+        wind_speed:cur.wind_speed_10m,
+        uvi:cur.uv_index!=null?cur.uv_index:null,
+        weather_code:cur.weather_code
+      },
+      hourly
+    };
+    wxLastFetch=now;
     renderWeather(wxData);
-    checkWeatherAlerts(wxData);
-  } catch { document.getElementById('WX-desc').textContent = 'Weather unavailable'; }
+    fetchNwsAlerts();
+  }catch{
+    descEl.textContent='Weather unavailable — tap ↺ Refresh';
+    document.getElementById('WX-temp').textContent='--°F';
+  }
 }
 
-function weatherIcon(code) {
-  const key = code?.slice(0,2);
-  return WX_ICONS[key] || '🌡️';
-}
-
-function renderWeather(d) {
-  const c = d.current;
-  document.getElementById('WX-icon').textContent = weatherIcon(c.weather?.[0]?.icon);
-  document.getElementById('WX-temp').textContent = Math.round(c.temp) + '°F';
-  document.getElementById('WX-desc').textContent = c.weather?.[0]?.description || '';
-  document.getElementById('WX-details').innerHTML = `
+function renderWeather(d){
+  const c=d.current;
+  const wc=c.weather_code;
+  document.getElementById('WX-icon').textContent=wmoEmoji(wc);
+  document.getElementById('WX-temp').textContent=Math.round(c.temp)+'°F';
+  document.getElementById('WX-desc').textContent=wmoDescription(wc);
+  const uv=c.uvi!=null&&c.uvi!==undefined?Math.round(c.uvi*10)/10:'—';
+  document.getElementById('WX-details').innerHTML=`
     <div class="weather-detail"><strong>${Math.round(c.feels_like)}°F</strong>Feels like</div>
-    <div class="weather-detail"><strong>${c.humidity}%</strong>Humidity</div>
-    <div class="weather-detail"><strong>${Math.round((c.wind_speed||0)*1.15)}</strong>Wind mph</div>
-    <div class="weather-detail"><strong>${c.uvi||0}</strong>UV index</div>`;
-  // Hourly forecast (next 8h)
-  const strip = document.getElementById('WX-forecast');
-  const hourly = (d.hourly||[]).slice(0,8);
-  strip.innerHTML = hourly.map(h => {
-    const t = new Date(h.dt*1000);
-    const hr = t.getHours();
-    const label = hr===0?'12a':hr<12?hr+'a':hr===12?'12p':(hr-12)+'p';
-    return `<div class="forecast-item">
+    <div class="weather-detail"><strong>${Math.round(c.humidity)}%</strong>Humidity</div>
+    <div class="weather-detail"><strong>${Math.round(c.wind_speed||0)}</strong>Wind mph</div>
+    <div class="weather-detail"><strong>${uv}</strong>UV index</div>`;
+  const strip=document.getElementById('WX-forecast');
+  const hourly=(d.hourly||[]).slice(0,8);
+  strip.innerHTML=hourly.map(ht=>{
+    const t=new Date(ht.dtMs);
+    const hr=t.getHours();
+    const label=hr===0?'12a':hr<12?hr+'a':hr===12?'12p':(hr-12)+'p';
+    return`<div class="forecast-item">
       <div class="forecast-time">${label}</div>
-      <div class="forecast-icon">${weatherIcon(h.weather?.[0]?.icon)}</div>
-      <div class="forecast-temp">${Math.round(h.temp)}°</div>
+      <div class="forecast-icon">${wmoEmoji(ht.weather_code)}</div>
+      <div class="forecast-temp">${Math.round(ht.temp)}°</div>
     </div>`;
   }).join('');
 }
 
-function renderWeatherMock() {
-  // Demo data when no API key set
-  document.getElementById('WX-icon').textContent = '⛅';
-  document.getElementById('WX-temp').textContent = '82°F';
-  document.getElementById('WX-desc').textContent = 'partly cloudy · Add OpenWeatherMap key for live data';
-  document.getElementById('WX-details').innerHTML = `
-    <div class="weather-detail"><strong>79°F</strong>Feels like</div>
-    <div class="weather-detail"><strong>65%</strong>Humidity</div>
-    <div class="weather-detail"><strong>12</strong>Wind mph</div>
-    <div class="weather-detail"><strong>7</strong>UV index</div>`;
-  const hrs = ['11a','12p','1p','2p','3p','4p','5p','6p'];
-  const temps = [80,83,85,86,84,82,79,76];
-  const icons = ['⛅','🌤️','☀️','☀️','⛅','🌦️','🌧️','⛈️'];
-  document.getElementById('WX-forecast').innerHTML = hrs.map((h,i)=>
-    `<div class="forecast-item"><div class="forecast-time">${h}</div><div class="forecast-icon">${icons[i]}</div><div class="forecast-temp">${temps[i]}°</div></div>`
-  ).join('');
-}
-
-function checkWeatherAlerts(d) {
-  const alerts = d.alerts || [];
-  const alertEl = document.getElementById('WX-alert');
-  const alertText = document.getElementById('WX-alert-text');
-  if (alerts.length) {
-    const a = alerts[0];
+async function fetchNwsAlerts(){
+  const alertEl=document.getElementById('WX-alert'),alertText=document.getElementById('WX-alert-text');
+  try{
+    const r=await fetch(`https://api.weather.gov/alerts/active?point=${WX_LAT},${WX_LON}`,{
+      headers:{'Accept':'application/geo+json','User-Agent':'TheDugoutCommandCenter/1.0 (github.com/ClubPrez/The-Dugout)'}
+    });
+    if(!r.ok){alertEl.classList.remove('show');return;}
+    const j=await r.json();
+    const feats=j.features||[];
+    if(!feats.length){alertEl.classList.remove('show');return;}
+    const p=feats[0].properties||{};
+    const head=(p.headline||p.event||'Weather alert').trim();
+    const desc=(p.description||'').replace(/\s+/g,' ').trim().slice(0,160);
     alertEl.classList.add('show');
-    alertText.textContent = a.event + (a.description ? ' — ' + a.description.slice(0,120) : '');
-    // Push as urgent announcement
-    postAnnouncement && toast('⛈️ Weather Alert', a.event, 'err');
-  } else {
+    alertText.textContent=head+(desc?' — '+desc:'');
+  }catch{
     alertEl.classList.remove('show');
   }
 }
@@ -5218,6 +5369,7 @@ const PANELS=['overview','eventday','sponsors','budget','receipts','meetings','p
 const PANEL_NAMES={overview:'Overview',eventday:'Event Day',sponsors:'Sponsors',budget:'Budget',receipts:'Receipts',meetings:'Meetings',projects:'Projects',assets:'Assets',attendees:'Attendees',surveys:'Surveys',fb:'Food & Bev',inv:'Inventory',mkt:'Marketing',gx:'Guest Exp.',vol:'Volunteers'};
 const COMMITTEE_PANELS=['fb','inv','mkt','gx','vol'];
 function gp(id){
+  expandedInvId=null;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+id)?.classList.add('active');
 
