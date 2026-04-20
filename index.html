@@ -1131,10 +1131,8 @@ body{font-family:var(--font);background:#eef0f4;color:var(--text);font-size:17px
           <span class="ann-badge" id="ANN-badge" style="display:none"></span>
         </button>
         <button class="install-btn" id="PWA-install-btn" style="display:none;" onclick="installPWA()">Install app</button>
-        <button class="hbtn" onclick="window.print()">Print</button>
-        <button class="hbtn" onclick="resetAll()" style="color:rgba(255,100,100,0.7)">Reset</button>
       </div>
-      <div class="hdr-logo-wrap"><img class="hdr-logo" src="assets/event-logo.png" alt="The Dugout" width="220" height="120" loading="lazy" decoding="async"></div>
+      <div class="hdr-logo-wrap"><img class="hdr-logo" src="assets/event-logo.png" alt="The Dugout" width="220" height="120" fetchpriority="high" decoding="async"></div>
     </div>
   </div>
   <div class="presence-bar" id="presenceBar">
