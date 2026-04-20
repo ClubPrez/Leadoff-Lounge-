@@ -1,8 +1,8 @@
 // The Dugout 2026 — Service Worker
 // Offline-first: caches the shell + queues writes when offline
 
-const CACHE_NAME = 'dugout26-v3';
-const OFFLINE_CACHE = 'dugout26-offline-v3';
+const CACHE_NAME = 'dugout26-v4';
+const OFFLINE_CACHE = 'dugout26-offline-v4';
 
 // Files to cache for offline shell
 const SHELL_FILES = [
