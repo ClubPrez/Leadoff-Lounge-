@@ -1548,7 +1548,7 @@ tr.it-dragging{opacity:0.55;}
     <div style="font-family:var(--font-condensed);font-size:22px;font-weight:700;">Meeting Intelligence</div>
     <button class="btn btn-primary" onclick="createMeeting()">+ New meeting</button>
   </div>
-  <div class="al al-b" style="margin-bottom:14px;"><strong>Record or paste any meeting transcript</strong> — Claude extracts the summary, decisions, and action items, then you push tasks directly to committee boards with one click. Works with live recording (Chrome) and Fireflies.ai exports.</div>
+  <div class="al al-b" style="margin-bottom:14px;"><strong>Record or paste any meeting transcript</strong> — Claude extracts the summary, decisions, and action items, then you push tasks to committee boards. Paste works from Fireflies (same field as “Paste”: copy transcript or summary block). AI runs in a Supabase Edge Function (<code style="font-size:12px;">analyze-meeting</code>) with your Anthropic key stored as a secret, not in the browser.</div>
 
   <div class="mtg-layout">
     <!-- LEFT: meeting list -->
@@ -1616,13 +1616,13 @@ tr.it-dragging{opacity:0.55;}
 
             <!-- Paste tab -->
             <div id="mtg-pane-paste" style="display:none;">
-              <textarea class="mtg-textarea" id="MTG-transcript-paste" placeholder="Paste your meeting notes or transcript here…&#10;&#10;Can be rough notes, a Word doc paste, or any text format. Claude will structure it." onchange="syncTranscript('paste')"></textarea>
+              <textarea class="mtg-textarea" id="MTG-transcript-paste" placeholder="Paste your meeting notes or transcript here…&#10;&#10;Can be rough notes, a Word doc paste, or any text format. Claude will structure it." oninput="syncTranscriptDebounced('paste')"></textarea>
               <div class="mtg-textarea-hint">Paste anything — rough notes, bullet points, full paragraphs. Claude handles messy input.</div>
             </div>
 
             <!-- Fireflies tab -->
             <div id="mtg-pane-fireflies" style="display:none;">
-              <textarea class="mtg-textarea" id="MTG-transcript-fireflies" placeholder="Paste your Fireflies.ai transcript here…&#10;&#10;From Fireflies: open your meeting → Summary → Copy transcript&#10;Or export as TXT and paste the full content." onchange="syncTranscript('fireflies')"></textarea>
+              <textarea class="mtg-textarea" id="MTG-transcript-fireflies" placeholder="Paste your Fireflies.ai transcript here…&#10;&#10;From Fireflies: open your meeting → Summary → Copy transcript&#10;Or export as TXT and paste the full content." oninput="syncTranscriptDebounced('fireflies')"></textarea>
               <div class="mtg-textarea-hint">Fireflies format with speaker labels (e.g. "[John]: We need to...") works best — Claude attributes tasks by speaker.</div>
             </div>
 
@@ -1892,6 +1892,7 @@ tr.it-dragging{opacity:0.55;}
 const SBU='https://lcqevefzbotmxtjbpgvl.supabase.co';
 const SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjcWV2ZWZ6Ym90bXh0amJwZ3ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDkzMTMsImV4cCI6MjA5MTA4NTMxM30.cudkKvAsddpVCPdXrstDeZfR2VqA9Vx8nLuQVUZZD80';
 const sb=supabase.createClient(SBU,SBK);
+/** Meeting AI: deploy `supabase/functions/analyze-meeting`, then set Edge secret ANTHROPIC_API_KEY (Dashboard → Edge Functions → Secrets). */
 
 // ── STATE ──
 let items=[],resps=[],sponsors=[],budgetAreas=[],receipts=[],receiptItems=[],assets=[];
@@ -4362,6 +4363,23 @@ let mtgTranscriptFinal='';
 let mtgRecordSeconds=0;
 let mtgRecordTimer=null;
 let mtgInputTab='record';
+let mtgSaveDebounce=null;
+
+/** Read transcript from visible Paste / Fireflies textarea or recording buffer before save or analyze. */
+function pullMtgTranscriptFromUI(){
+  if(mtgInputTab==='paste'){
+    const el=document.getElementById('MTG-transcript-paste');
+    if(el)mtgTranscriptFinal=el.value;
+  }else if(mtgInputTab==='fireflies'){
+    const el=document.getElementById('MTG-transcript-fireflies');
+    if(el)mtgTranscriptFinal=el.value;
+  }
+}
+
+function syncTranscriptDebounced(source){
+  clearTimeout(mtgSaveDebounce);
+  mtgSaveDebounce=setTimeout(()=>syncTranscript(source),450);
+}
 
 // ── LIST ──
 function rMeetings(){
@@ -4435,12 +4453,16 @@ function syncTranscript(source){
 
 // ── TAB SWITCHER ──
 function switchMtgTab(tab){
+  pullMtgTranscriptFromUI();
   mtgInputTab=tab;
   ['record','paste','fireflies'].forEach(t=>{
     document.getElementById(`mtg-tab-${t}`)?.classList.toggle('active',t===tab);
     const pane=document.getElementById(`mtg-pane-${t}`);
     if(pane)pane.style.display=t===tab?'block':'none';
   });
+  const paste=document.getElementById('MTG-transcript-paste'),ff=document.getElementById('MTG-transcript-fireflies');
+  if(paste)paste.value=mtgTranscriptFinal;
+  if(ff)ff.value=mtgTranscriptFinal;
 }
 
 // ── LIVE RECORDING (Web Speech API) ──
@@ -4505,8 +4527,12 @@ function setMtgStep(n){
 
 async function processMeeting(){
   const m=meetings.find(x=>x.id===activeMtgId);if(!m)return;
-  const transcript=(mtgTranscriptFinal||m.transcript||'').trim();
-  if(!transcript){toast('No transcript','Add a transcript before analyzing','warn');return;}
+  pullMtgTranscriptFromUI();
+  let transcript=(mtgTranscriptFinal||m.transcript||'').trim();
+  if(!transcript){toast('No transcript','Paste Fireflies text or notes (Paste / Fireflies tab), or record first','warn');return;}
+
+  await sb.from('meetings').update({transcript,source:mtgInputTab}).eq('id',activeMtgId);
+  const mi=meetings.findIndex(x=>x.id===activeMtgId);if(mi!==-1){meetings[mi].transcript=transcript;meetings[mi].source=mtgInputTab;}
 
   document.getElementById('MTG-input-section').style.display='none';
   document.getElementById('MTG-processing').style.display='block';
@@ -4515,69 +4541,46 @@ async function processMeeting(){
 
   const attendees=document.getElementById('MTG-attendees')?.value||m.attendees||'';
   const committee=document.getElementById('MTG-committee')?.value||m.committee||'';
-  const COMM_NAMES={fb:'Food & Bev',inv:'Inventory',mkt:'Marketing',gx:'Guest Exp.',vol:'Volunteers',all:'Full committee'};
-
-  const prompt=`You are an AI meeting analyst for a 13-person steering committee organizing The Dugout 2026, a 2-day event at Hot Shops Omaha during the College World Series opening weekend (June 12–13, 2026).
-
-Meeting title: "${m.title||'Untitled'}"
-Committee: ${COMM_NAMES[committee]||committee||'General'}
-Attendees present: ${attendees||'Not specified'}
-Date: ${m.meeting_date||'Unknown'}
-
-TRANSCRIPT:
-${transcript}
-
-Analyze this meeting transcript carefully. Return ONLY valid JSON — no markdown, no preamble:
-
-{
-  "summary": "2–3 sentence TL;DR of what was discussed and decided",
-  "decisions": [
-    "Clear decision that was made (start with a verb)",
-    "Another decision"
-  ],
-  "action_items": [
-    {
-      "title": "Specific actionable task (start with a verb)",
-      "assigned_to": "Full name of the person responsible — pick from attendees list if possible, or infer from context",
-      "due_date": "YYYY-MM-DD if mentioned, otherwise null",
-      "priority": "urgent|high|medium|low — infer from tone and context",
-      "notes": "Brief context or details from the meeting"
-    }
-  ],
-  "full_notes": "Structured markdown-style notes. Use sections like ## Topics Discussed, ## Decisions, ## Next Steps. Be thorough but clear."
-}
-
-RULES:
-- Extract EVERY action item mentioned, even casually
-- Match assigned_to names to the attendees list when possible
-- If someone says "I'll handle X" attribute it to them
-- Decisions are things that were agreed on, not things that need to happen
-- Priority: urgent = needs to happen before next meeting, high = this week, medium = this month, low = general backlog`;
 
   try{
     setMtgStep(2);
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+    const{data:result,error:fnErr}=await sb.functions.invoke('analyze-meeting',{
+      body:{
+        transcript,
+        title:m.title||'Untitled',
+        committee,
+        attendees,
+        meeting_date:m.meeting_date||null
+      }
     });
     setMtgStep(3);
-    const d=await resp.json();
-    const txt=d.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
-    const result=JSON.parse(txt);
-    setMtgStep(4);
-    await new Promise(r=>setTimeout(r,400));
 
-    // Save to DB
+    if(fnErr){
+      throw new Error(fnErr.message||'Edge Function error — deploy analyze-meeting and set ANTHROPIC_API_KEY secret');
+    }
+    if(result&&typeof result==='object'&&result.error){
+      throw new Error(typeof result.error==='string'?result.error:JSON.stringify(result.error));
+    }
+    if(!result||typeof result.summary!=='string'){
+      throw new Error('Unexpected response from analyze-meeting. Check Edge Function logs.');
+    }
+
+    await sb.from('meeting_tasks').delete().eq('meeting_id',activeMtgId).or('pushed.eq.false,pushed.is.null');
+    meetingTasks=meetingTasks.filter(t=>t.meeting_id!==activeMtgId||t.pushed);
+
+    setMtgStep(4);
+    await new Promise(r=>setTimeout(r,300));
+
     const{data:updated}=await sb.from('meetings').update({
       summary:result.summary||'',
       decisions:result.decisions||[],
       full_notes:result.full_notes||'',
-      transcript,status:'processed',
+      transcript,
+      status:'processed',
       processed_at:new Date().toISOString()
     }).eq('id',activeMtgId).select().single();
     if(updated){const idx=meetings.findIndex(x=>x.id===activeMtgId);if(idx!==-1)meetings[idx]=updated;}
 
-    // Save action items
     if(result.action_items?.length){
       const rows=result.action_items.map((t,i)=>({
         meeting_id:activeMtgId,title:t.title,assigned_to:t.assigned_to||'',
@@ -4595,7 +4598,7 @@ RULES:
   }catch(err){
     document.getElementById('MTG-processing').style.display='none';
     document.getElementById('MTG-input-section').style.display='block';
-    toast('Analysis failed',err.message,'err');
+    toast('Analysis failed',err.message||String(err),'err');
   }
 }
 
