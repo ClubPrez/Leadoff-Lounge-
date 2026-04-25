@@ -2129,7 +2129,12 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
       <div style="font-family:var(--font-condensed);font-size:24px;font-weight:700;">Asset Library</div>
       <div style="font-size:13px;color:var(--tm);" id="ASSET-breadcrumb">All folders</div>
     </div>
-    <button class="btn btn-primary" onclick="document.getElementById('ASSET-file-input').click()" style="font-size:13px;">⬆ Upload file</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('ASSET-file-input').click()" style="font-size:13px;">⬆ Supabase upload</button>
+      <button class="btn btn-primary" onclick="openDrivePicker()" style="font-size:13px;background:linear-gradient(135deg,#1a73e8,#1558b0);">
+        <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;">Upload to Drive
+      </button>
+    </div>
   </div>
 
   <input type="file" id="ASSET-file-input" multiple accept="*/*" onchange="handleAssetUpload(this.files)">
@@ -2138,6 +2143,12 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
     <!-- Folder sidebar -->
     <div class="folder-sidebar">
       <div class="folder-sidebar-head">Folders</div>
+      <a href="https://drive.google.com/drive/folders/1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA" target="_blank"
+        style="display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:12px;color:var(--blue);text-decoration:none;border-bottom:1px solid var(--grb);transition:background .15s;"
+        onmouseover="this.style.background='rgba(37,99,235,0.05)'" onmouseout="this.style.background=''">
+        <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" style="width:14px;height:14px;">
+        Open in Google Drive ↗
+      </a>
       <div id="FOLDER-list"></div>
     </div>
 
@@ -2150,7 +2161,7 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
         onclick="document.getElementById('ASSET-file-input').click()">
         <div class="upload-zone-icon">📁</div>
         <div class="upload-zone-text">Drop files here or click to upload</div>
-        <div class="upload-zone-sub">Images, videos, PDFs, design files — up to 500MB</div>
+        <div class="upload-zone-sub">Drop here for Supabase · Use "Upload to Drive" for large files (videos, design files)</div>
       </div>
       <div class="upload-progress" id="ASSET-progress">
         <div class="upload-progress-name" id="ASSET-progress-name">Uploading…</div>
@@ -2475,6 +2486,8 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 <script>
 const SBU='https://lcqevefzbotmxtjbpgvl.supabase.co';
 const SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjcWV2ZWZ6Ym90bXh0amJwZ3ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDkzMTMsImV4cCI6MjA5MTA4NTMxM30.cudkKvAsddpVCPdXrstDeZfR2VqA9Vx8nLuQVUZZD80';
@@ -6606,6 +6619,166 @@ async function signOut() {
 }
 
 let appInitialized = false;
+
+// ══════════════════════════════════════
+// ── GOOGLE DRIVE PICKER ──
+// ══════════════════════════════════════
+const GOOGLE_CLIENT_ID = '872539664451-n2qm2fc0jdja6l5vo6jmk3mddk5tn6ue.apps.googleusercontent.com';
+const GOOGLE_API_KEY   = ''; // Not needed for Picker with OAuth
+const DRIVE_ROOT_ID    = '1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA';
+
+// Map dashboard folder keys to Drive folder IDs
+const DRIVE_FOLDERS_MAP = {
+  'all':           '1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA',
+  'company-logos': '1AOoY0a01cyvi3e--e99vxZRxhFmaYIs9',
+  '50-mile-march': '1jGoCNSKAJkw08VD5yo-4Vejf4yXREXAt',
+  'design-files':  '1OmRgWvVF9SWfpM7cwpOI0O6qVJKeRzdS',
+  'marketing':     '1-UEBUOOvoK2J-yTDKAg1Vmd_Axtqf-cZ',
+  'event-xp':      '1dubxBlbikqOQ1P5EL0IdEmB1dHx5N4Qs',
+  'food-bev':      '1l1NaP6aV6vudfngXHJuL4tJrS9d4g_vz',
+  'inventory':     '1nSmDQDOHqZk0JD6gO1jAUHrWGcCdak67',
+  'apparel':       '1IYU6zGm22z_tA1RT-3LDk9lR8mSkPocU',
+  'media':         '1mJ4Z9_LQnqJT6rF_FOsVez1_pKAwxhD9',
+  'receipts-docs': '1tUo8VpD-pi_ufNsBOFHQvcAQU0vQERZ6',
+  'headshots':     '1FxH3oulH5xycguHHopOsNBza2WBYKDtR',
+  'misc':          '1gw1ryqDt9GyMtmF_Ra4CulwLkIVt7fto',
+};
+
+let googleAccessToken = null;
+let googleTokenClient = null;
+let pickerApiLoaded   = false;
+let gisLoaded         = false;
+
+function initGoogleDrive() {
+  // Load Picker API
+  if (window.gapi) {
+    window.gapi.load('picker', () => { pickerApiLoaded = true; });
+  } else {
+    window.addEventListener('load', () => {
+      if (window.gapi) window.gapi.load('picker', () => { pickerApiLoaded = true; });
+    });
+  }
+
+  // Initialize token client for OAuth
+  if (window.google?.accounts?.oauth2) {
+    googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+      callback: (tokenResponse) => {
+        if (tokenResponse.error) {
+          toast('Google auth failed', tokenResponse.error, 'err');
+          return;
+        }
+        googleAccessToken = tokenResponse.access_token;
+        // After getting token, do what was requested
+        if (pendingDriveAction === 'picker') showDrivePicker();
+        else if (pendingDriveAction === 'upload') executeDriveUpload();
+        pendingDriveAction = null;
+      }
+    });
+    gisLoaded = true;
+  }
+}
+
+let pendingDriveAction = null;
+let pendingUploadFiles = null;
+
+function openDrivePicker() {
+  // Opens Google Picker so user can SELECT existing Drive files to link
+  if (!googleAccessToken) {
+    pendingDriveAction = 'picker';
+    googleTokenClient?.requestAccessToken({ prompt: '' });
+    return;
+  }
+  showDrivePicker();
+}
+
+function showDrivePicker() {
+  if (!pickerApiLoaded || !googleAccessToken) {
+    toast('Loading Google Drive…', 'Try again in a moment', '');
+    // Load gapi picker if not ready
+    if (window.gapi) window.gapi.load('picker', () => { pickerApiLoaded=true; showDrivePicker(); });
+    return;
+  }
+
+  const targetFolderId = DRIVE_FOLDERS_MAP[currentFolder] || DRIVE_ROOT_ID;
+
+  const picker = new window.google.picker.PickerBuilder()
+    .addView(new window.google.picker.DocsView()
+      .setParent(targetFolderId)
+      .setIncludeFolders(false)
+      .setSelectFolderEnabled(false))
+    .addView(new window.google.picker.DocsUploadView()
+      .setParent(targetFolderId))
+    .setOAuthToken(googleAccessToken)
+    .setTitle(`Upload or select from ${FOLDERS.find(f=>f.id===currentFolder)?.label||'Drive'}`)
+    .setCallback(drivePickerCallback)
+    .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+    .build();
+
+  picker.setVisible(true);
+}
+
+async function drivePickerCallback(data) {
+  if (data.action !== window.google.picker.Action.PICKED) return;
+
+  for (const file of data.docs) {
+    // Make file publicly viewable
+    await makeFilepublic(file.id);
+
+    // Generate direct view URL
+    const viewUrl = `https://drive.google.com/file/d/${file.id}/view`;
+    const thumbUrl = file.iconUrl || '';
+
+    // Save to assets table
+    const assetData = {
+      name: file.name,
+      folder: currentFolder === 'all' ? 'misc' : currentFolder,
+      category: file.mimeType?.startsWith('image') ? 'photo'
+               : file.mimeType?.startsWith('video') ? 'video' : 'other',
+      file_url: viewUrl,
+      storage_path: `drive:${file.id}`,
+      file_size: file.sizeBytes || 0,
+      mime_type: file.mimeType || '',
+      uploaded_by: presenceName || 'Committee',
+      description: `Google Drive · ${file.id}`,
+    };
+
+    const { data: asset } = await sb.from('assets').insert(assetData).select().single();
+    if (asset) {
+      assets.unshift(asset);
+      toast('Added from Drive', file.name, '');
+    }
+  }
+
+  rAssets(); rFolders();
+}
+
+async function makeFilepublic(fileId) {
+  // Make the Drive file viewable by anyone with the link
+  try {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${googleAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+  } catch(e) {
+    console.warn('Could not set file permissions:', e);
+  }
+}
+
+// Call initGoogleDrive when GIS and GAPI are ready
+function checkGoogleReady() {
+  if (window.google?.accounts?.oauth2 && window.gapi) {
+    initGoogleDrive();
+  } else {
+    setTimeout(checkGoogleReady, 500);
+  }
+}
+setTimeout(checkGoogleReady, 1000);
 
 // ── NAV ──
 const PANELS=['overview','eventday','sponsors','budget','receipts','meetings','projects','assets','attendees','surveys','vendors','fb','inv','mkt','gx','vol'];
