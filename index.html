@@ -543,23 +543,83 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 .fab:hover{transform:scale(1.07);}
 .fab:active{transform:scale(0.95);}
 
-/* ── ASSETS TAB ── */
-.asset-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.acat{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--grb);cursor:pointer;background:white;transition:all .15s;}
-.acat.active{background:var(--navy);color:white;border-color:var(--navy);}
-.asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
-.asset-card{background:white;border:1px solid var(--grb);border-radius:var(--r);overflow:hidden;transition:all .15s;}
-.asset-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.09);}
-.asset-thumb{height:120px;background:var(--grl);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;overflow:hidden;}
-.asset-thumb img{width:100%;height:100%;object-fit:cover;}
-.asset-thumb video{width:100%;height:100%;object-fit:cover;}
-.asset-body{padding:10px 12px;}
-.asset-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.asset-meta{font-size:11px;color:var(--tm);margin-top:3px;}
-.asset-cat-badge{position:absolute;top:6px;left:6px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,0.5);color:white;}
-.add-asset-card{border:2px dashed var(--grb);cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:160px;display:flex;}
-.add-asset-card:hover{border-color:#93c5fd;background:var(--bl);}
-.add-asset-card span{font-size:13px;color:var(--tm);}
+/* ── ASSETS TAB — FILE EXPLORER ── */
+/* Toolbar */
+.fe-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.fe-breadcrumb{display:flex;align-items:center;gap:4px;flex:1;flex-wrap:wrap;}
+.fe-crumb{font-size:14px;font-weight:500;color:var(--blue);cursor:pointer;padding:3px 6px;border-radius:5px;transition:background .12s;}
+.fe-crumb:hover{background:rgba(37,99,235,0.08);}
+.fe-crumb.current{color:var(--text);cursor:default;}
+.fe-crumb.current:hover{background:transparent;}
+.fe-sep{color:var(--tt);font-size:13px;}
+.fe-view-btns{display:flex;border:1px solid var(--grb);border-radius:8px;overflow:hidden;}
+.fe-view-btn{padding:6px 11px;background:white;border:none;cursor:pointer;font-size:14px;color:var(--tm);transition:all .12s;}
+.fe-view-btn.active{background:var(--navy);color:white;}
+/* Drop zone overlay */
+.fe-drop-overlay{position:absolute;inset:0;background:rgba(37,99,235,0.08);border:3px dashed var(--blue);border-radius:var(--r);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;pointer-events:none;}
+.fe-drop-overlay.show{display:flex;}
+.fe-drop-text{font-size:18px;font-weight:600;color:var(--blue);}
+/* Grid view */
+.fe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
+.fe-item{border-radius:10px;padding:10px 8px;cursor:pointer;transition:all .15s;position:relative;text-align:center;user-select:none;}
+.fe-item:hover{background:rgba(37,99,235,0.07);}
+.fe-item.selected{background:rgba(37,99,235,0.12);outline:2px solid var(--blue);}
+.fe-item-icon{width:64px;height:64px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:36px;position:relative;overflow:hidden;}
+.fe-item-icon img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+.fe-item-icon video{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+.fe-folder-icon{background:linear-gradient(145deg,#4299e1,#2b6cb0);box-shadow:0 4px 12px rgba(66,153,225,0.35);}
+.fe-item-name{font-size:11px;font-weight:500;color:var(--text);word-break:break-word;line-height:1.3;max-height:32px;overflow:hidden;}
+.fe-item-meta{font-size:10px;color:var(--tt);margin-top:2px;}
+/* List view */
+.fe-list{display:flex;flex-direction:column;border:1px solid var(--grb);border-radius:var(--r);overflow:hidden;background:white;}
+.fe-list-head{display:grid;grid-template-columns:40px 1fr 120px 100px 80px;gap:0;padding:8px 14px;background:#f8f9fb;border-bottom:1px solid var(--grb);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tt);}
+.fe-list-row{display:grid;grid-template-columns:40px 1fr 120px 100px 80px;gap:0;padding:9px 14px;border-bottom:1px solid var(--grb);align-items:center;cursor:pointer;transition:background .1s;}
+.fe-list-row:last-child{border-bottom:none;}
+.fe-list-row:hover{background:#f8f9fb;}
+.fe-list-row.selected{background:rgba(37,99,235,0.07);}
+.fe-list-icon{font-size:20px;text-align:center;}
+.fe-list-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px;}
+.fe-list-type{font-size:12px;color:var(--tm);}
+.fe-list-size{font-size:12px;color:var(--tm);}
+.fe-list-date{font-size:12px;color:var(--tm);}
+/* Context menu */
+.fe-ctx{position:fixed;background:white;border:1px solid var(--grb);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.15);padding:6px;z-index:600;min-width:180px;display:none;}
+.fe-ctx.show{display:block;}
+.fe-ctx-item{padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:8px;}
+.fe-ctx-item:hover{background:var(--grl);}
+.fe-ctx-item.danger{color:var(--red);}
+.fe-ctx-item.danger:hover{background:var(--rl);}
+.fe-ctx-sep{height:1px;background:var(--grb);margin:4px 0;}
+/* Upload progress */
+.fe-upload-bar{background:var(--gl);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.fe-upload-info{flex:1;}
+.fe-upload-name{font-size:13px;font-weight:500;color:var(--text);}
+.fe-upload-track{height:4px;background:var(--grb);border-radius:2px;overflow:hidden;margin-top:4px;}
+.fe-upload-fill{height:100%;background:var(--green2);border-radius:2px;transition:width .3s;}
+/* Empty state */
+.fe-empty{padding:48px 24px;text-align:center;}
+.fe-empty-icon{font-size:48px;margin-bottom:12px;}
+.fe-empty-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+.fe-empty-sub{font-size:13px;color:var(--tm);}
+/* Selection bar */
+.fe-selection-bar{position:sticky;bottom:0;background:var(--navy);color:white;border-radius:10px;padding:10px 16px;display:none;align-items:center;gap:12px;margin-top:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
+.fe-selection-bar.show{display:flex;}
+.fe-sel-count{font-size:14px;font-weight:600;flex:1;}
+.fe-sel-btn{padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-family:var(--font);font-size:12px;cursor:pointer;transition:all .15s;}
+.fe-sel-btn:hover{background:rgba(255,255,255,0.2);}
+.fe-sel-btn.danger{border-color:rgba(239,68,68,0.4);color:#f87171;}
+/* Lightbox */
+.asset-lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:900;display:none;align-items:center;justify-content:center;padding:20px;}
+.asset-lightbox.open{display:flex;}
+.asset-lb-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);border:none;color:white;font-size:20px;width:40px;height:40px;border-radius:50%;cursor:pointer;transition:background .15s;}
+.asset-lb-close:hover{background:rgba(255,255,255,.25);}
+.asset-lb-img{max-width:88vw;max-height:78vh;object-fit:contain;border-radius:8px;}
+.asset-lb-meta{color:rgba(255,255,255,.6);font-size:13px;margin-top:14px;text-align:center;line-height:1.6;}
+.asset-lb-actions{display:flex;gap:8px;margin-top:12px;}
+.asset-lb-btn{padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:white;font-family:var(--font);font-size:13px;cursor:pointer;transition:all .15s;}
+.asset-lb-btn:hover{background:rgba(255,255,255,.2);}
+.asset-lb-btn.danger{color:#f87171;border-color:rgba(239,68,68,0.35);}
+#ASSET-file-input{display:none;}
 
 /* ── COMMITTEE PANELS ── */
 .ctrow{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
@@ -2124,60 +2184,84 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 
 <!-- ASSETS -->
 <div class="panel" id="panel-assets">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-    <div>
-      <div style="font-family:var(--font-condensed);font-size:24px;font-weight:700;">Asset Library</div>
-      <div style="font-size:13px;color:var(--tm);" id="ASSET-breadcrumb">All folders</div>
+
+  <!-- Toolbar: breadcrumb + view toggle + upload buttons -->
+  <div class="fe-toolbar">
+    <div class="fe-breadcrumb" id="FE-breadcrumb">
+      <span class="fe-crumb current">Asset Library</span>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-secondary" onclick="document.getElementById('ASSET-file-input').click()" style="font-size:13px;">⬆ Supabase upload</button>
-      <button class="btn btn-primary" onclick="openDrivePicker()" style="font-size:13px;background:linear-gradient(135deg,#1a73e8,#1558b0);">
-        <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;">Upload to Drive
-      </button>
+    <div class="fe-view-btns">
+      <button class="fe-view-btn active" id="FE-grid-btn" onclick="setView('grid')" title="Grid view">⊞</button>
+      <button class="fe-view-btn" id="FE-list-btn" onclick="setView('list')" title="List view">☰</button>
     </div>
+    <button class="btn btn-secondary" onclick="document.getElementById('ASSET-file-input').click()" style="font-size:13px;padding:8px 14px;">⬆ Upload</button>
+    <button class="btn btn-primary" onclick="openDrivePicker()" style="font-size:13px;padding:8px 14px;background:linear-gradient(135deg,#1a73e8,#1558b0);">
+      <img src="https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" style="width:15px;height:15px;vertical-align:middle;margin-right:5px;" onerror="this.style.display='none'">Drive
+    </button>
+    <a href="https://drive.google.com/drive/folders/1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA" target="_blank" class="btn btn-secondary" style="font-size:12px;padding:8px 14px;text-decoration:none;">Open Drive ↗</a>
   </div>
 
   <input type="file" id="ASSET-file-input" multiple accept="*/*" onchange="handleAssetUpload(this.files)">
 
-  <div class="asset-layout">
-    <!-- Folder sidebar -->
-    <div class="folder-sidebar">
-      <div class="folder-sidebar-head">Folders</div>
-      <a href="https://drive.google.com/drive/folders/1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA" target="_blank"
-        style="display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:12px;color:var(--blue);text-decoration:none;border-bottom:1px solid var(--grb);transition:background .15s;"
-        onmouseover="this.style.background='rgba(37,99,235,0.05)'" onmouseout="this.style.background=''">
-        <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" style="width:14px;height:14px;">
-        Open in Google Drive ↗
-      </a>
-      <div id="FOLDER-list"></div>
+  <!-- Upload progress bar -->
+  <div class="fe-upload-bar" id="FE-upload-bar" style="display:none;">
+    <div style="font-size:20px;">⬆️</div>
+    <div class="fe-upload-info">
+      <div class="fe-upload-name" id="FE-upload-name">Uploading…</div>
+      <div class="fe-upload-track"><div class="fe-upload-fill" id="FE-upload-fill" style="width:0%"></div></div>
+    </div>
+    <div style="font-size:13px;color:var(--gt);" id="FE-upload-pct">0%</div>
+  </div>
+
+  <!-- File explorer — drop zone wrapper -->
+  <div id="FE-explorer" style="position:relative;min-height:400px;"
+    ondragover="feDragOver(event)" ondragleave="feDragLeave(event)" ondrop="feDrop(event)">
+    <div class="fe-drop-overlay" id="FE-drop-overlay">
+      <div style="font-size:48px;">📂</div>
+      <div class="fe-drop-text">Drop files to upload</div>
+      <div style="font-size:13px;color:var(--blue);opacity:.7;" id="FE-drop-folder">Into current folder</div>
     </div>
 
-    <!-- Main area -->
-    <div>
-      <div class="upload-zone" id="ASSET-upload-zone"
-        ondragover="event.preventDefault();this.classList.add('drag')"
-        ondragleave="this.classList.remove('drag')"
-        ondrop="this.classList.remove('drag');handleAssetUpload(event.dataTransfer.files)"
-        onclick="document.getElementById('ASSET-file-input').click()">
-        <div class="upload-zone-icon">📁</div>
-        <div class="upload-zone-text">Drop files here or click to upload</div>
-        <div class="upload-zone-sub">Drop here for Supabase · Use "Upload to Drive" for large files (videos, design files)</div>
+    <!-- Grid view -->
+    <div class="fe-grid" id="FE-grid"></div>
+
+    <!-- List view -->
+    <div id="FE-list-wrap" style="display:none;">
+      <div class="fe-list-head">
+        <div></div>
+        <div>Name</div>
+        <div>Type</div>
+        <div>Size</div>
+        <div>Added</div>
       </div>
-      <div class="upload-progress" id="ASSET-progress">
-        <div class="upload-progress-name" id="ASSET-progress-name">Uploading…</div>
-        <div class="upload-progress-bar"><div class="upload-progress-fill" id="ASSET-progress-fill" style="width:0%"></div></div>
-      </div>
-      <div class="asset-grid" id="AG"></div>
+      <div class="fe-list" id="FE-list"></div>
     </div>
+  </div>
+
+  <!-- Selection bar -->
+  <div class="fe-selection-bar" id="FE-sel-bar">
+    <div class="fe-sel-count" id="FE-sel-count">0 selected</div>
+    <button class="fe-sel-btn" onclick="copySelectedLinks()">🔗 Copy links</button>
+    <button class="fe-sel-btn danger" onclick="deleteSelected()">🗑 Delete</button>
+    <button class="fe-sel-btn" onclick="clearSelection()">✕ Clear</button>
   </div>
 </div>
 
-<!-- Asset lightbox -->
-<div class="asset-lightbox" id="ASSET-lightbox" onclick="if(event.target===this)closeAssetLightbox()">
+<!-- Context menu -->
+<div class="fe-ctx" id="FE-ctx">
+  <div class="fe-ctx-item" onclick="ctxOpen()">↗ Open</div>
+  <div class="fe-ctx-item" onclick="ctxCopyLink()">🔗 Copy link</div>
+  <div class="fe-ctx-item" onclick="ctxDownload()">⬇ Download</div>
+  <div class="fe-ctx-sep"></div>
+  <div class="fe-ctx-item danger" onclick="ctxDelete()">🗑 Delete</div>
+</div>
+
+<!-- Lightbox -->
+<div class="asset-lightbox" id="ASSET-lightbox" onclick="if(event.target.id==='ASSET-lightbox')closeAssetLightbox()">
   <button class="asset-lb-close" onclick="closeAssetLightbox()">✕</button>
   <img class="asset-lb-img" id="ASSET-lb-img" style="display:none;">
   <video class="asset-lb-img" id="ASSET-lb-video" controls style="display:none;"></video>
-  <div id="ASSET-lb-icon" style="display:none;font-size:80px;text-align:center;"></div>
+  <div id="ASSET-lb-icon" style="display:none;font-size:96px;text-align:center;"></div>
   <div class="asset-lb-meta" id="ASSET-lb-meta"></div>
   <div class="asset-lb-actions">
     <a class="asset-lb-btn" id="ASSET-lb-download" href="#" target="_blank">⬇ Download</a>
@@ -3193,196 +3277,391 @@ function syncSponsorDropdowns(){
 
 function updateSponsorDropdown(){syncSponsorDropdowns();}
 
-// ── ASSETS ──
+// ── ASSETS — FILE EXPLORER ──
 const SB_STORAGE_URL = `${SBU}/storage/v1/object/public/leadoff-assets/`;
+
 const FOLDERS = [
-  { id:'all',       label:'All Files',         icon:'🗂️' },
-  { id:'company-logos', label:'Company Logos', icon:'🏢' },
-  { id:'50-mile-march', label:'50 Mile March', icon:'🏃' },
-  { id:'design-files',  label:'Design Files',  icon:'🎨' },
-  { id:'marketing',     label:'Marketing',     icon:'📣' },
-  { id:'event-xp',      label:'Event Experience', icon:'🎪' },
-  { id:'food-bev',      label:'Food & Bev',    icon:'🍔' },
-  { id:'inventory',     label:'Inventory',     icon:'📦' },
-  { id:'apparel',       label:'Jerseys & Apparel', icon:'👕' },
-  { id:'media',         label:'Photos & Video',icon:'📸' },
-  { id:'receipts-docs', label:'Receipts & Docs',icon:'🧾' },
-  { id:'headshots',     label:'Headshots',     icon:'👤' },
-  { id:'misc',          label:'Misc',          icon:'📁' },
+  { id:'root',          label:'Asset Library',     icon:'🗂️',  driveId:'1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA' },
+  { id:'company-logos', label:'Company Logos',     icon:'🏢',  driveId:'1AOoY0a01cyvi3e--e99vxZRxhFmaYIs9' },
+  { id:'50-mile-march', label:'50 Mile March',     icon:'🏃',  driveId:'1jGoCNSKAJkw08VD5yo-4Vejf4yXREXAt' },
+  { id:'design-files',  label:'Design Files',      icon:'🎨',  driveId:'1OmRgWvVF9SWfpM7cwpOI0O6qVJKeRzdS' },
+  { id:'marketing',     label:'Marketing',         icon:'📣',  driveId:'1-UEBUOOvoK2J-yTDKAg1Vmd_Axtqf-cZ' },
+  { id:'event-xp',      label:'Event Experience',  icon:'🎪',  driveId:'1dubxBlbikqOQ1P5EL0IdEmB1dHx5N4Qs' },
+  { id:'food-bev',      label:'Food & Bev',        icon:'🍔',  driveId:'1l1NaP6aV6vudfngXHJuL4tJrS9d4g_vz' },
+  { id:'inventory',     label:'Inventory',         icon:'📦',  driveId:'1nSmDQDOHqZk0JD6gO1jAUHrWGcCdak67' },
+  { id:'apparel',       label:'Jerseys & Apparel', icon:'👕',  driveId:'1IYU6zGm22z_tA1RT-3LDk9lR8mSkPocU' },
+  { id:'media',         label:'Photos & Video',    icon:'📸',  driveId:'1mJ4Z9_LQnqJT6rF_FOsVez1_pKAwxhD9' },
+  { id:'receipts-docs', label:'Receipts & Docs',   icon:'🧾',  driveId:'1tUo8VpD-pi_ufNsBOFHQvcAQU0vQERZ6' },
+  { id:'headshots',     label:'Headshots',         icon:'👤',  driveId:'1FxH3oulH5xycguHHopOsNBza2WBYKDtR' },
+  { id:'misc',          label:'Misc',              icon:'📁',  driveId:'1gw1ryqDt9GyMtmF_Ra4CulwLkIVt7fto' },
 ];
 
-let currentFolder = 'all';
-let currentAssetId = null;
 const FILE_ICONS = {
-  'pdf':'📄','doc':'📝','docx':'📝','xls':'📊','xlsx':'📊',
-  'ppt':'📋','pptx':'📋','zip':'🗜️','ai':'🎨','psd':'🎨',
-  'mp4':'🎬','mov':'🎬','mp3':'🎵','svg':'🖼️','fig':'🎨',
+  pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊', csv:'📊',
+  ppt:'📋', pptx:'📋', zip:'🗜️', rar:'🗜️', ai:'🎨', psd:'🎨',
+  mp4:'🎬', mov:'🎬', avi:'🎬', mp3:'🎵', wav:'🎵', svg:'🖼️',
+  fig:'🎨', sketch:'🎨', indd:'🎨', eps:'🎨',
 };
-
-function getFileIcon(name='', mime='') {
-  const ext = name.split('.').pop().toLowerCase();
-  return FILE_ICONS[ext] || (mime.startsWith('image')?'🖼️':mime.startsWith('video')?'🎬':mime.startsWith('audio')?'🎵':'📄');
+function fileIcon(name='', mime='') {
+  const ext = (name.split('.').pop()||'').toLowerCase();
+  if (FILE_ICONS[ext]) return FILE_ICONS[ext];
+  if (mime.startsWith('image')) return '🖼️';
+  if (mime.startsWith('video')) return '🎬';
+  if (mime.startsWith('audio')) return '🎵';
+  return '📄';
 }
-
-function formatBytes(b) {
-  if (!b) return '';
-  if (b < 1024) return b+'B';
-  if (b < 1048576) return Math.round(b/1024)+'KB';
+function fmtBytes(b) {
+  if (!b||b===0) return '—';
+  if (b<1024) return b+'B';
+  if (b<1048576) return Math.round(b/1024)+'KB';
   return (b/1048576).toFixed(1)+'MB';
 }
-
-function rFolders() {
-  const list = document.getElementById('FOLDER-list'); if (!list) return;
-  list.innerHTML = FOLDERS.map(f => {
-    const count = f.id==='all' ? assets.filter(a=>a.category!=='folder').length
-      : assets.filter(a=>a.folder===f.id&&a.category!=='folder').length;
-    return `<div class="folder-item ${currentFolder===f.id?'active':''}" onclick="selectAssetFolder('${f.id}')">
-      <span class="folder-icon">${f.icon}</span>
-      <span class="folder-name">${f.label}</span>
-      ${count>0?`<span class="folder-count">${count}</span>`:''}
-    </div>`;
-  }).join('');
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
-function selectAssetFolder(id) {
-  currentFolder = id;
-  const folder = FOLDERS.find(f=>f.id===id);
-  document.getElementById('ASSET-breadcrumb').textContent = folder ? folder.label : 'All files';
-  rFolders();
-  rAssets();
-}
+// State
+let feView = 'grid';
+let feFolder = 'root';
+let fePath = [{ id:'root', label:'Asset Library' }];
+let feSelected = new Set();
+let feCtxAsset = null;
+let currentAssetId = null;
 
-function rAssets() {
-  const grid = document.getElementById('AG'); if (!grid) return;
-  const filtered = currentFolder==='all'
-    ? assets.filter(a=>a.category!=='folder')
-    : assets.filter(a=>a.folder===currentFolder&&a.category!=='folder');
+function rAssets() { feRender(); }
+function filterAssets() {}
+function openAddAsset() {}
+function saveAsset() {}
+function rFolders() {}
 
-  if (!filtered.length) {
-    const folder = FOLDERS.find(f=>f.id===currentFolder);
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;">
-      <div style="font-size:40px;margin-bottom:12px;">${folder?.icon||'📁'}</div>
-      <div style="font-size:15px;font-weight:500;margin-bottom:6px;">${folder?.label||'Folder'} is empty</div>
-      <div style="font-size:13px;color:var(--tm);">Drop files above or click Upload to add files here</div>
-    </div>`;
-    return;
+function feRender() {
+  const grid = document.getElementById('FE-grid');
+  const list = document.getElementById('FE-list');
+  const listWrap = document.getElementById('FE-list-wrap');
+  if (!grid) return;
+
+  // Breadcrumb
+  const bc = document.getElementById('FE-breadcrumb');
+  if (bc) {
+    bc.innerHTML = fePath.map((p, i) => {
+      const isLast = i === fePath.length - 1;
+      return (isLast
+        ? `<span class="fe-crumb current">${p.label}</span>`
+        : `<span class="fe-crumb" onclick="feNavigateTo(${i})">${p.label}</span><span class="fe-sep">/</span>`
+      );
+    }).join('');
   }
 
-  grid.innerHTML = '';
-  filtered.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).forEach(a => {
-    const isImg = a.mime_type?.startsWith('image') || a.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
-    const isVideo = a.mime_type?.startsWith('video') || a.file_url?.match(/\.(mp4|mov|webm)/i);
-    const icon = getFileIcon(a.name, a.mime_type||'');
-    const ext = (a.name||'').split('.').pop().toUpperCase().slice(0,4);
-    const div = document.createElement('div');
-    div.className = 'asset-card';
-    div.onclick = () => openAssetLightbox(a);
-    div.innerHTML = `
-      <div class="asset-thumb">
-        ${isImg ? `<img src="${esc(a.file_url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-          <div class="asset-thumb-icon" style="display:none;align-items:center;justify-content:center;">${icon}</div>`
-        : isVideo ? `<video src="${esc(a.file_url)}" style="width:100%;height:100%;object-fit:cover;"></video>`
-        : `<div class="asset-thumb-icon" style="display:flex;align-items:center;justify-content:center;">${icon}</div>`}
-        ${ext?`<div class="asset-type-badge">${ext}</div>`:''}
-      </div>
-      <div class="asset-body">
-        <div class="asset-name" title="${esc(a.name)}">${esc(a.name)||'Unnamed'}</div>
-        <div class="asset-meta">${formatBytes(a.file_size)}${a.uploaded_by?` · ${esc(a.uploaded_by)}`:''}</div>
+  // Get items for current folder
+  const isRoot = feFolder === 'root';
+  let items = [];
+
+  if (isRoot) {
+    // Root: show folder cards + any root-level files
+    items = FOLDERS.filter(f=>f.id!=='root').map(f => ({
+      _type: 'folder',
+      id: f.id, label: f.label, icon: f.icon, driveId: f.driveId,
+      count: assets.filter(a=>a.folder===f.id&&a.category!=='folder').length
+    }));
+    // Also show any unfoldered assets
+    const rootFiles = assets.filter(a=>!a.folder||a.folder==='root'||a.folder==='all');
+    items = [...items, ...rootFiles.map(a=>({_type:'file',...a}))];
+  } else {
+    // Subfolder: show only files in this folder
+    items = assets
+      .filter(a=>a.folder===feFolder&&a.category!=='folder')
+      .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+      .map(a=>({_type:'file',...a}));
+  }
+
+  if (feView === 'grid') {
+    listWrap.style.display = 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+
+    if (!items.length) {
+      grid.style.display = 'block';
+      const folder = FOLDERS.find(f=>f.id===feFolder);
+      grid.innerHTML = `<div class="fe-empty">
+        <div class="fe-empty-icon">${folder?.icon||'📁'}</div>
+        <div class="fe-empty-title">This folder is empty</div>
+        <div class="fe-empty-sub">Drop files here or click Upload to add files</div>
       </div>`;
-    grid.appendChild(div);
-  });
+      return;
+    }
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'fe-item' + (feSelected.has(item.id)?' selected':'');
+      div.dataset.id = item.id;
+
+      if (item._type === 'folder') {
+        const f = FOLDERS.find(x=>x.id===item.id);
+        div.innerHTML = `
+          <div class="fe-item-icon fe-folder-icon" style="color:white;font-size:28px;">📁</div>
+          <div class="fe-item-name">${f?.label||item.label}</div>
+          <div class="fe-item-meta">${item.count||0} file${item.count!==1?'s':''}</div>`;
+        div.ondblclick = () => feOpenFolder(item.id, f?.label||item.label);
+        div.onclick = (e) => { if(e.detail===1) feSelect(item.id, e); };
+      } else {
+        const isImg = item.mime_type?.startsWith('image') || item.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+        const isVid = item.mime_type?.startsWith('video');
+        const icon = fileIcon(item.name, item.mime_type||'');
+        div.innerHTML = `
+          <div class="fe-item-icon" style="background:var(--grl);">
+            ${isImg?`<img src="${esc(item.file_url)}" onerror="this.parentElement.innerHTML='${icon}'">`
+             :isVid?`<video src="${esc(item.file_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"></video>`
+             :`<span style="font-size:36px;">${icon}</span>`}
+          </div>
+          <div class="fe-item-name" title="${esc(item.name)}">${esc(item.name||'Unnamed')}</div>
+          <div class="fe-item-meta">${fmtBytes(item.file_size)}</div>`;
+        div.ondblclick = () => openAssetLightbox(item);
+        div.onclick = (e) => { if(e.detail===1) feSelect(item.id, e); };
+        div.oncontextmenu = (e) => { e.preventDefault(); feCtxAsset=item; showCtx(e.clientX, e.clientY); };
+      }
+      grid.appendChild(div);
+    });
+
+  } else {
+    // List view
+    grid.style.display = 'none';
+    listWrap.style.display = 'block';
+    list.innerHTML = '';
+
+    if (!items.length) {
+      list.innerHTML = `<div class="fe-empty"><div class="fe-empty-icon">📁</div><div class="fe-empty-title">Empty folder</div></div>`;
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'fe-list-row' + (feSelected.has(item.id)?'selected':'');
+      row.dataset.id = item.id;
+
+      if (item._type === 'folder') {
+        const f = FOLDERS.find(x=>x.id===item.id);
+        row.innerHTML = `
+          <div class="fe-list-icon">📁</div>
+          <div class="fe-list-name">${f?.label||item.label}</div>
+          <div class="fe-list-type">Folder</div>
+          <div class="fe-list-size">${item.count||0} files</div>
+          <div class="fe-list-date">—</div>`;
+        row.ondblclick = () => feOpenFolder(item.id, f?.label||item.label);
+      } else {
+        const icon = fileIcon(item.name, item.mime_type||'');
+        const ext = (item.name||'').split('.').pop().toUpperCase();
+        row.innerHTML = `
+          <div class="fe-list-icon">${icon}</div>
+          <div class="fe-list-name" title="${esc(item.name)}">${esc(item.name||'Unnamed')}</div>
+          <div class="fe-list-type">${ext||'File'}</div>
+          <div class="fe-list-size">${fmtBytes(item.file_size)}</div>
+          <div class="fe-list-date">${fmtDate(item.created_at)}</div>`;
+        row.ondblclick = () => openAssetLightbox(item);
+        row.oncontextmenu = (e) => { e.preventDefault(); feCtxAsset=item; showCtx(e.clientX, e.clientY); };
+      }
+      row.onclick = (e) => { if(e.detail===1) feSelect(item.id, e); };
+      list.appendChild(row);
+    });
+  }
+
+  feUpdateSelBar();
 }
 
+function feOpenFolder(id, label) {
+  feFolder = id;
+  fePath.push({ id, label });
+  feSelected.clear();
+  feRender();
+}
+
+function feNavigateTo(idx) {
+  fePath = fePath.slice(0, idx+1);
+  feFolder = fePath[fePath.length-1].id;
+  feSelected.clear();
+  feRender();
+}
+
+function setView(v) {
+  feView = v;
+  document.getElementById('FE-grid-btn').classList.toggle('active', v==='grid');
+  document.getElementById('FE-list-btn').classList.toggle('active', v==='list');
+  feRender();
+}
+
+function feSelect(id, e) {
+  if (e.shiftKey || e.metaKey || e.ctrlKey) {
+    feSelected.has(id) ? feSelected.delete(id) : feSelected.add(id);
+  } else {
+    feSelected.clear();
+    feSelected.add(id);
+  }
+  feRender();
+}
+
+function clearSelection() {
+  feSelected.clear();
+  feRender();
+}
+
+function feUpdateSelBar() {
+  const bar = document.getElementById('FE-sel-bar');
+  const count = document.getElementById('FE-sel-count');
+  if (!bar) return;
+  if (feSelected.size > 0) {
+    bar.classList.add('show');
+    count.textContent = `${feSelected.size} item${feSelected.size!==1?'s':''} selected`;
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+// Drag and drop
+function feDragOver(e) {
+  e.preventDefault();
+  document.getElementById('FE-drop-overlay')?.classList.add('show');
+  const folder = FOLDERS.find(f=>f.id===feFolder);
+  const el = document.getElementById('FE-drop-folder');
+  if (el) el.textContent = `Into ${folder?.label||'current folder'}`;
+}
+function feDragLeave(e) {
+  if (!document.getElementById('FE-explorer')?.contains(e.relatedTarget)) {
+    document.getElementById('FE-drop-overlay')?.classList.remove('show');
+  }
+}
+function feDrop(e) {
+  e.preventDefault();
+  document.getElementById('FE-drop-overlay')?.classList.remove('show');
+  if (e.dataTransfer.files.length) handleAssetUpload(e.dataTransfer.files);
+}
+
+// Context menu
+function showCtx(x, y) {
+  const ctx = document.getElementById('FE-ctx'); if (!ctx) return;
+  ctx.style.left = Math.min(x, window.innerWidth-200)+'px';
+  ctx.style.top = Math.min(y, window.innerHeight-180)+'px';
+  ctx.classList.add('show');
+}
+function hideCtx() { document.getElementById('FE-ctx')?.classList.remove('show'); }
+document.addEventListener('click', hideCtx);
+document.addEventListener('keydown', e => { if(e.key==='Escape') { hideCtx(); clearSelection(); }});
+
+function ctxOpen() { if(feCtxAsset) openAssetLightbox(feCtxAsset); hideCtx(); }
+function ctxCopyLink() {
+  if (feCtxAsset?.file_url) navigator.clipboard?.writeText(feCtxAsset.file_url);
+  toast('Copied', 'Link copied to clipboard', ''); hideCtx();
+}
+function ctxDownload() {
+  if (feCtxAsset?.file_url) { const a=document.createElement('a');a.href=feCtxAsset.file_url;a.download=feCtxAsset.name||'file';a.click(); }
+  hideCtx();
+}
+async function ctxDelete() {
+  hideCtx();
+  if (!feCtxAsset||!confirm(`Delete "${feCtxAsset.name}"?`)) return;
+  await deleteAssetById(feCtxAsset.id, feCtxAsset.storage_path);
+  feCtxAsset = null;
+}
+
+async function deleteSelected() {
+  if (!feSelected.size) return;
+  if (!confirm(`Delete ${feSelected.size} item${feSelected.size!==1?'s':''}?`)) return;
+  for (const id of feSelected) {
+    const a = assets.find(x=>x.id===id);
+    if (a) await deleteAssetById(a.id, a.storage_path);
+  }
+  feSelected.clear();
+}
+
+async function deleteAssetById(id, storagePath) {
+  if (storagePath && !storagePath.startsWith('drive:')) {
+    await sb.storage.from('leadoff-assets').remove([storagePath]);
+  }
+  await sb.from('assets').delete().eq('id', id);
+  assets = assets.filter(a=>a.id!==id);
+  feRender();
+  toast('Deleted', 'File removed', 'warn');
+}
+
+function copySelectedLinks() {
+  const links = [...feSelected].map(id => assets.find(a=>a.id===id)?.file_url).filter(Boolean);
+  navigator.clipboard?.writeText(links.join('
+'));
+  toast('Copied', `${links.length} link${links.length!==1?'s':''} copied`, '');
+  clearSelection();
+}
+
+// Upload to Supabase Storage
 async function handleAssetUpload(files) {
   if (!files?.length) return;
-  const folder = currentFolder==='all' ? 'misc' : currentFolder;
-  const progress = document.getElementById('ASSET-progress');
-  const progressName = document.getElementById('ASSET-progress-name');
-  const progressFill = document.getElementById('ASSET-progress-fill');
+  const folder = (feFolder==='root'||feFolder==='all') ? 'misc' : feFolder;
+  const bar = document.getElementById('FE-upload-bar');
+  const nameEl = document.getElementById('FE-upload-name');
+  const fill = document.getElementById('FE-upload-fill');
+  const pct = document.getElementById('FE-upload-pct');
 
   for (const file of Array.from(files)) {
-    progress.style.display = 'block';
-    progressName.textContent = `Uploading ${file.name}…`;
-    progressFill.style.width = '10%';
+    bar.style.display = 'flex';
+    nameEl.textContent = `Uploading ${file.name}…`;
+    fill.style.width = '10%'; pct.textContent = '10%';
 
     try {
       const path = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-
-      // Upload to Supabase Storage
-      const { data, error } = await sb.storage
-        .from('leadoff-assets')
-        .upload(path, file, { cacheControl:'3600', upsert:false });
-
+      const { data, error } = await sb.storage.from('leadoff-assets').upload(path, file, { cacheControl:'3600', upsert:false });
       if (error) throw error;
-      progressFill.style.width = '70%';
+      fill.style.width = '70%'; pct.textContent = '70%';
 
-      // Get public URL
       const { data: urlData } = sb.storage.from('leadoff-assets').getPublicUrl(path);
-      const publicUrl = urlData.publicUrl;
-      progressFill.style.width = '85%';
+      fill.style.width = '85%'; pct.textContent = '85%';
 
-      // Save to assets table
       const assetData = {
-        name: file.name,
-        folder,
+        name: file.name, folder,
         category: file.type.startsWith('image')?'photo':file.type.startsWith('video')?'video':'other',
-        file_url: publicUrl,
-        storage_path: path,
-        file_size: file.size,
-        mime_type: file.type,
-        uploaded_by: presenceName || 'Committee',
-        description: '',
+        file_url: urlData.publicUrl, storage_path: path,
+        file_size: file.size, mime_type: file.type,
+        uploaded_by: presenceName||'Committee', description: '',
       };
       const { data: asset } = await sb.from('assets').insert(assetData).select().single();
       if (asset) assets.unshift(asset);
-
-      progressFill.style.width = '100%';
+      fill.style.width = '100%'; pct.textContent = '100%';
       toast('Uploaded', file.name, '');
-
-      // Auto-backup receipts to receipts-docs folder
-      if (folder === 'receipts-docs') {
-        // Already in the right place
-      }
-
-      rAssets(); rFolders();
     } catch(e) {
-      toast('Upload failed', e.message || 'Try again', 'err');
-      console.error(e);
+      toast('Upload failed', e.message||'Try again', 'err');
     }
   }
 
-  setTimeout(() => { progress.style.display='none'; progressFill.style.width='0%'; }, 1200);
-  // Reset file input
+  setTimeout(() => { bar.style.display='none'; fill.style.width='0%'; }, 1000);
   document.getElementById('ASSET-file-input').value = '';
+  feRender();
 }
 
+// Lightbox
 function openAssetLightbox(asset) {
   currentAssetId = asset.id;
   const lb = document.getElementById('ASSET-lightbox');
   const img = document.getElementById('ASSET-lb-img');
-  const video = document.getElementById('ASSET-lb-video');
-  const icon = document.getElementById('ASSET-lb-icon');
+  const vid = document.getElementById('ASSET-lb-video');
+  const ico = document.getElementById('ASSET-lb-icon');
   const meta = document.getElementById('ASSET-lb-meta');
   const dl = document.getElementById('ASSET-lb-download');
 
   const isImg = asset.mime_type?.startsWith('image') || asset.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
-  const isVideo = asset.mime_type?.startsWith('video') || asset.file_url?.match(/\.(mp4|mov|webm)/i);
+  const isVid = asset.mime_type?.startsWith('video') || asset.file_url?.match(/\.(mp4|mov|webm)/i);
 
-  img.style.display = isImg ? 'block' : 'none';
-  video.style.display = isVideo ? 'block' : 'none';
-  icon.style.display = (!isImg&&!isVideo) ? 'block' : 'none';
+  img.style.display = isImg?'block':'none';
+  vid.style.display = isVid?'block':'none';
+  ico.style.display = (!isImg&&!isVid)?'block':'none';
 
   if (isImg) img.src = asset.file_url;
-  else if (isVideo) video.src = asset.file_url;
-  else icon.textContent = getFileIcon(asset.name, asset.mime_type||'');
+  else if (isVid) { vid.src = asset.file_url; }
+  else ico.textContent = fileIcon(asset.name, asset.mime_type||'');
 
   const folder = FOLDERS.find(f=>f.id===asset.folder);
   meta.innerHTML = `<strong>${esc(asset.name)}</strong><br>
-    ${folder?.label||''}${asset.file_size?` · ${formatBytes(asset.file_size)}`:''}
-    ${asset.uploaded_by?` · Uploaded by ${esc(asset.uploaded_by)}`:''}`;
+    ${folder?.label||''}${asset.file_size?` · ${fmtBytes(asset.file_size)}`:''}
+    ${asset.uploaded_by?` · ${esc(asset.uploaded_by)}`:''}
+    ${asset.created_at?` · ${fmtDate(asset.created_at)}`:''}`;
 
-  dl.href = asset.file_url;
-  dl.download = asset.name;
+  dl.href = asset.file_url; dl.download = asset.name;
   lb.classList.add('open');
 }
 
@@ -3394,26 +3673,17 @@ function closeAssetLightbox() {
 
 function copyAssetUrl() {
   const a = assets.find(x=>x.id===currentAssetId);
-  if (a?.file_url) { navigator.clipboard?.writeText(a.file_url); toast('Copied', 'Link copied to clipboard',''); }
+  if (a?.file_url) { navigator.clipboard?.writeText(a.file_url); toast('Copied','Link copied',''); }
 }
 
 async function deleteCurrentAsset() {
-  const a = assets.find(x=>x.id===currentAssetId); if (!a) return;
-  if (!confirm(`Delete "${a.name}"? This cannot be undone.`)) return;
+  const a = assets.find(x=>x.id===currentAssetId); if(!a) return;
+  if (!confirm(`Delete "${a.name}"?`)) return;
   closeAssetLightbox();
-  if (a.storage_path) {
-    await sb.storage.from('leadoff-assets').remove([a.storage_path]);
-  }
-  await sb.from('assets').delete().eq('id', a.id);
-  assets = assets.filter(x=>x.id!==a.id);
-  rAssets(); rFolders();
-  toast('Deleted', a.name, 'warn');
+  await deleteAssetById(a.id, a.storage_path);
 }
 
-// Legacy compat
-function filterAssets(){}
-function openAddAsset(){}
-function saveAsset(data){ handleAssetUpload([]); }
+// Drag to reorder / move between folders not yet implemented — use context menu
 
 // ── COMMITTEE PANELS ──
 function renderCx(k){
