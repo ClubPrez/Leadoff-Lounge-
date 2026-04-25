@@ -1317,6 +1317,31 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 
 /* Gallery */
 .proj-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+/* Project file upload */
+.proj-drop-zone{border:2px dashed var(--grb);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px;background:rgba(255,255,255,0.6);}
+.proj-drop-zone:hover,.proj-drop-zone.drag{border-color:var(--blue);background:var(--bl);}
+.proj-drop-zone-icon{font-size:24px;margin-bottom:4px;}
+.proj-drop-zone-text{font-size:13px;font-weight:500;color:var(--tm);}
+.proj-drop-zone-sub{font-size:11px;color:var(--tt);margin-top:2px;}
+/* Route indicator badge */
+.proj-route-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:4px;}
+.proj-route-sb{background:var(--gl);color:var(--gt);}
+.proj-route-drive{background:#e8f0fe;color:#1558b0;}
+/* Gallery item upgrade */
+.proj-gal-item{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--grl);cursor:pointer;}
+.proj-gal-item img,.proj-gal-item video{width:100%;height:100%;object-fit:cover;}
+.proj-gal-item-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .15s;display:flex;align-items:flex-end;padding:6px;}
+.proj-gal-item:hover .proj-gal-item-overlay{background:rgba(0,0,0,0.35);}
+.proj-gal-item-actions{opacity:0;transition:opacity .15s;display:flex;gap:4px;}
+.proj-gal-item:hover .proj-gal-item-actions{opacity:1;}
+.proj-gal-item-btn{background:rgba(255,255,255,0.9);border:none;border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;font-family:var(--font);}
+/* Upload progress in project */
+.proj-upload-progress{background:var(--gl);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:none;}
+.proj-upload-name{font-size:12px;font-weight:500;margin-bottom:4px;}
+.proj-upload-bar{height:4px;background:var(--grb);border-radius:2px;overflow:hidden;}
+.proj-upload-fill{height:100%;background:var(--green2);border-radius:2px;transition:width .2s;}
+/* Route notification */
+.proj-route-toast{font-size:11px;color:var(--tm);text-align:center;margin-bottom:6px;min-height:16px;}
 .proj-gal-item{aspect-ratio:4/3;border-radius:8px;overflow:hidden;position:relative;cursor:pointer;background:var(--grl);}
 .proj-gal-item img{width:100%;height:100%;object-fit:cover;transition:transform .2s;}
 .proj-gal-item:hover img{transform:scale(1.06);}
@@ -1730,9 +1755,28 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
         <textarea class="proj-brief-edit" id="PD-brief-edit" rows="4" style="display:none" placeholder="Describe the project, context, decisions needed…" onblur="saveBrief()"></textarea>
 
         <div class="proj-section-head" style="margin-top:18px;">
-          Gallery
-          <button class="ab" onclick="addGalleryImage()">+ Add image</button>
+          Files & Gallery
         </div>
+
+        <!-- Smart route toast -->
+        <div class="proj-route-toast" id="PD-route-toast"></div>
+
+        <!-- Drop zone -->
+        <div class="proj-drop-zone" id="PD-drop-zone"
+          ondragover="projDragOver(event)" ondragleave="projDragLeave(event)" ondrop="projDrop(event)"
+          onclick="document.getElementById('PD-file-input').click()">
+          <div class="proj-drop-zone-icon">📎</div>
+          <div class="proj-drop-zone-text">Drop files or click to upload</div>
+          <div class="proj-drop-zone-sub">≤10MB → Supabase · Larger → Google Drive · Automatic</div>
+        </div>
+        <input type="file" id="PD-file-input" multiple accept="*/*" style="display:none;" onchange="projHandleFiles(this.files)">
+
+        <!-- Upload progress -->
+        <div class="proj-upload-progress" id="PD-upload-prog">
+          <div class="proj-upload-name" id="PD-upload-name">Uploading…</div>
+          <div class="proj-upload-bar"><div class="proj-upload-fill" id="PD-upload-fill" style="width:0%"></div></div>
+        </div>
+
         <div class="proj-gallery" id="PD-gallery"></div>
 
         <div class="proj-section-head" style="margin-top:18px;">Updates & comments</div>
@@ -5055,14 +5099,34 @@ function fillProjDetail(){
 
   // Gallery
   const gallery=document.getElementById('PD-gallery');
-  gallery.innerHTML=items.map(item=>`
-    <div class="proj-gal-item" onclick="openLightbox('${esc(item.url)}','${esc(item.caption||'')}')">
-      <img src="${esc(item.url)}" loading="lazy" alt="${esc(item.caption||'')}">
-      <div class="proj-gal-grad" style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.5));pointer-events:none;"></div>
-      ${item.caption?`<div class="proj-gal-caption">${esc(item.caption)}</div>`:''}
-      <button class="proj-gal-del" onclick="event.stopPropagation();deleteGalItem('${item.id}')">✕</button>
-    </div>`).join('')+
-    `<div class="proj-gal-add" onclick="addGalleryImage()"><span>+</span><span style="font-size:11px;color:var(--tm);">Add image</span></div>`;
+  if (!items.length) {
+    gallery.innerHTML = `<div style="grid-column:1/-1;padding:16px 0;text-align:center;color:var(--tm);font-size:13px;">No files yet — drop files above to upload</div>`;
+  } else {
+    gallery.innerHTML = items.map(item => {
+      const isImg = item.item_type==='image' || item.url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+      const isVid = item.item_type==='video' || item.url?.match(/\.(mp4|mov|webm)/i);
+      const isDrive = item.storage_source==='drive' || item.url?.includes('drive.google.com');
+      const icon = isDrive ? '☁️' : '📄';
+      const ext = (item.caption||item.url||'').split('.').pop().toUpperCase().slice(0,4);
+      return `<div class="proj-gal-item" onclick="${isImg||isVid?`openLightbox('${esc(item.url)}','${esc(item.caption||'')}')`:isDrive?`window.open('${esc(item.url)}','_blank')`:``}">
+        ${isImg
+          ? `<img src="${esc(item.url)}" loading="lazy" alt="${esc(item.caption||'')}" style="width:100%;height:100%;object-fit:cover;">`
+          : isVid
+          ? `<video src="${esc(item.url)}" style="width:100%;height:100%;object-fit:cover;"></video>`
+          : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--grl);">
+              <span style="font-size:28px;">${isDrive?'☁️':'📄'}</span>
+              <span style="font-size:10px;font-weight:600;color:var(--tm);">${ext||'FILE'}</span>
+            </div>`}
+        <div class="proj-gal-item-overlay">
+          <div class="proj-gal-item-actions">
+            <span class="proj-route-badge ${isDrive?'proj-route-drive':'proj-route-sb'}" style="pointer-events:none;">${isDrive?'Drive':'Supabase'}</span>
+            <button class="proj-gal-item-btn" onclick="event.stopPropagation();deleteGalItem('${item.id}')">✕</button>
+          </div>
+        </div>
+        ${item.caption?`<div class="proj-gal-caption">${esc(item.caption)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
 
   // Updates
   const feed=document.getElementById('PD-updates');
@@ -5140,15 +5204,204 @@ async function updateProjField(field,value){
 }
 
 // ── GALLERY ──
+const PROJ_SIZE_THRESHOLD = 10 * 1024 * 1024; // 10MB — below goes Supabase, above goes Drive
+
+function projDragOver(e) {
+  e.preventDefault();
+  document.getElementById('PD-drop-zone')?.classList.add('drag');
+  // Preview routing based on dragged files
+  const items = e.dataTransfer.items;
+  if (items?.length) {
+    const sizes = [...items].map(i => i.getAsFile()?.size || 0);
+    const hasLarge = sizes.some(s => s > PROJ_SIZE_THRESHOLD);
+    const hasBoth = sizes.some(s => s <= PROJ_SIZE_THRESHOLD) && hasLarge;
+    showRouteToast(hasBoth ? 'mix' : hasLarge ? 'drive' : 'supabase');
+  }
+}
+function projDragLeave(e) {
+  if (!document.getElementById('PD-drop-zone')?.contains(e.relatedTarget)) {
+    document.getElementById('PD-drop-zone')?.classList.remove('drag');
+    clearRouteToast();
+  }
+}
+function projDrop(e) {
+  e.preventDefault();
+  document.getElementById('PD-drop-zone')?.classList.remove('drag');
+  if (e.dataTransfer.files.length) projHandleFiles(e.dataTransfer.files);
+}
+
+function showRouteToast(type) {
+  const el = document.getElementById('PD-route-toast'); if (!el) return;
+  const msgs = {
+    supabase: '⚡ Small file — uploading to Supabase',
+    drive: '☁️ Large file — routing to Google Drive',
+    mix: '⚡ Small files → Supabase · ☁️ Large files → Google Drive',
+  };
+  el.textContent = msgs[type] || '';
+}
+function clearRouteToast() {
+  const el = document.getElementById('PD-route-toast'); if (el) el.textContent = '';
+}
+
+async function projHandleFiles(files) {
+  if (!files?.length || !activeProjId) return;
+  const prog = document.getElementById('PD-upload-prog');
+  const progName = document.getElementById('PD-upload-name');
+  const progFill = document.getElementById('PD-upload-fill');
+  clearRouteToast();
+
+  for (const file of Array.from(files)) {
+    const isLarge = file.size > PROJ_SIZE_THRESHOLD;
+    const route = isLarge ? 'drive' : 'supabase';
+    showRouteToast(route);
+
+    prog.style.display = 'block';
+    progName.textContent = `${isLarge ? '☁️ Drive' : '⚡ Supabase'} — ${file.name}`;
+    progFill.style.width = '10%';
+
+    try {
+      let fileUrl = '';
+      let storagePath = '';
+      let storageSource = route;
+
+      if (isLarge) {
+        // ── LARGE FILE → Google Drive ──
+        // Requires Google auth — request token first if needed
+        if (!googleAccessToken) {
+          // Queue this file and request token
+          pendingDriveAction = 'proj-upload';
+          pendingUploadFiles = files;
+          googleTokenClient?.requestAccessToken({ prompt: '' });
+          prog.style.display = 'none';
+          showRouteToast('drive');
+          return; // Will be called again after auth
+        }
+
+        // Upload to Google Drive project folder
+        const driveFolderId = await getOrCreateDriveProjFolder(activeProjId);
+        progFill.style.width = '30%';
+
+        const meta = { name: file.name, parents: [driveFolderId] };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+        form.append('file', file);
+
+        const resp = await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,webContentLink',
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${googleAccessToken}` },
+            body: form,
+          }
+        );
+        progFill.style.width = '75%';
+
+        if (!resp.ok) throw new Error(`Drive upload failed: ${resp.status}`);
+        const driveFile = await resp.json();
+
+        // Make publicly viewable
+        await fetch(`https://www.googleapis.com/drive/v3/files/${driveFile.id}/permissions`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+        });
+
+        fileUrl = driveFile.webViewLink || `https://drive.google.com/file/d/${driveFile.id}/view`;
+        storagePath = `drive:${driveFile.id}`;
+        progFill.style.width = '90%';
+
+      } else {
+        // ── SMALL FILE → Supabase Storage ──
+        const path = `projects/${activeProjId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+        const { data, error } = await sb.storage.from('project-files').upload(path, file, { cacheControl:'3600', upsert:false });
+        if (error) throw error;
+        progFill.style.width = '75%';
+
+        const { data: urlData } = sb.storage.from('project-files').getPublicUrl(path);
+        fileUrl = urlData.publicUrl;
+        storagePath = path;
+        progFill.style.width = '90%';
+      }
+
+      // Determine item_type
+      const isImg = file.type.startsWith('image');
+      const isVid = file.type.startsWith('video');
+      const itemType = isImg ? 'image' : isVid ? 'video' : 'file';
+
+      // Save to project_items
+      const existing = projectItems.filter(i=>i.project_id===activeProjId);
+      const { data: item } = await sb.from('project_items').insert({
+        project_id: activeProjId,
+        url: fileUrl,
+        caption: file.name,
+        item_type: itemType,
+        sort_order: existing.length,
+        file_size: file.size,
+        mime_type: file.type,
+        storage_source: storageSource,
+        storage_path: storagePath,
+        uploaded_by: presenceName || 'Committee',
+      }).select().single();
+
+      if (item) {
+        projectItems.push(item);
+        // Auto-set cover if no cover yet and it's an image
+        const proj = projects.find(x=>x.id===activeProjId);
+        if (proj && !proj.cover_url && isImg) {
+          proj.cover_url = fileUrl;
+          await sb.from('projects').update({cover_url:fileUrl}).eq('id',activeProjId);
+        }
+      }
+
+      progFill.style.width = '100%';
+      fillProjDetail();
+      rProjects();
+      toast(`Uploaded to ${isLarge?'Google Drive':'Supabase'}`, file.name, '');
+
+    } catch(e) {
+      toast('Upload failed', e.message || 'Try again', 'err');
+      console.error(e);
+    }
+  }
+
+  setTimeout(() => { prog.style.display='none'; progFill.style.width='0%'; clearRouteToast(); }, 1200);
+  document.getElementById('PD-file-input').value = '';
+}
+
+// Get or create a Drive folder for this project
+const projDriveFolderCache = {};
+async function getOrCreateDriveProjFolder(projId) {
+  if (projDriveFolderCache[projId]) return projDriveFolderCache[projId];
+
+  const proj = projects.find(p=>p.id===projId);
+  const folderName = `${proj?.title||'Project'} — ${projId.slice(0,8)}`;
+
+  // Create folder inside the main LL Drive folder
+  const resp = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: ['1ed9elhK7bXo-96Txz_UXEA8eyTr3u0oA'],
+    }),
+  });
+  const folder = await resp.json();
+  projDriveFolderCache[projId] = folder.id;
+  return folder.id;
+}
+
 async function addGalleryImage(){
-  const url=prompt('Image URL (paste a link to any image):');if(!url?.trim())return;
-  const caption=prompt('Caption (optional — describe what this shows):');
+  const url=prompt('Paste a URL to any image or file:');if(!url?.trim())return;
+  const caption=prompt('Caption (optional):');
   const p=activeProjId;
   const existing=projectItems.filter(i=>i.project_id===p);
-  const{data:item}=await sb.from('project_items').insert({project_id:p,url:url.trim(),caption:caption||'',item_type:'image',sort_order:existing.length}).select().single();
+  const{data:item}=await sb.from('project_items').insert({
+    project_id:p,url:url.trim(),caption:caption||'',
+    item_type:'image',sort_order:existing.length,storage_source:'url'
+  }).select().single();
   if(item){
     projectItems.push(item);
-    // Auto-set first image as cover
     const proj=projects.find(x=>x.id===p);
     if(proj&&!proj.cover_url){proj.cover_url=url.trim();await sb.from('projects').update({cover_url:url.trim()}).eq('id',p);}
     fillProjDetail();rProjects();
@@ -5156,7 +5409,15 @@ async function addGalleryImage(){
 }
 
 async function deleteGalItem(id){
-  if(!confirm('Remove this image?'))return;
+  const item = projectItems.find(i=>i.id===id);
+  if(!confirm('Remove this file?'))return;
+
+  // Delete from storage if applicable
+  if (item?.storage_source === 'supabase' && item.storage_path) {
+    await sb.storage.from('project-files').remove([item.storage_path]);
+  }
+  // Note: Drive files are not deleted (Drive is source of truth)
+
   projectItems=projectItems.filter(i=>i.id!==id);
   fillProjDetail();rProjects();
   await sb.from('project_items').delete().eq('id',id);
@@ -6940,10 +7201,11 @@ function initGoogleDrive() {
           return;
         }
         googleAccessToken = tokenResponse.access_token;
-        // After getting token, do what was requested
         if (pendingDriveAction === 'picker') showDrivePicker();
         else if (pendingDriveAction === 'upload') executeDriveUpload();
+        else if (pendingDriveAction === 'proj-upload' && pendingUploadFiles) projHandleFiles(pendingUploadFiles);
         pendingDriveAction = null;
+        pendingUploadFiles = null;
       }
     });
     gisLoaded = true;
