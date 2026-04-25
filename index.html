@@ -505,6 +505,26 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 .btn-secondary:hover{background:#f8faff;border-color:#93c5fd;color:var(--blue);}
 /* Receipt history */
 .receipt-history{display:flex;flex-direction:column;gap:10px;}
+/* Year folder tabs */
+.receipt-years{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.receipt-year-tab{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;
+  border:1px solid var(--grb);background:var(--glass-bg);backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);cursor:pointer;transition:all .18s;font-weight:500;font-size:14px;}
+.receipt-year-tab:hover{border-color:#93c5fd;background:rgba(37,99,235,0.05);}
+.receipt-year-tab.active{background:var(--navy);color:white;border-color:var(--navy);
+  box-shadow:0 4px 16px rgba(11,25,41,0.25);}
+.receipt-year-tab .ryt-year{font-family:var(--font-condensed);font-size:20px;font-weight:700;line-height:1;}
+.receipt-year-tab .ryt-meta{font-size:11px;opacity:.65;margin-top:2px;}
+.receipt-year-tab .ryt-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+  background:rgba(255,255,255,0.15);margin-left:4px;}
+.receipt-year-tab:not(.active) .ryt-badge{background:var(--grl);color:var(--tm);}
+.receipt-year-summary{background:var(--glass-bg);border:1px solid var(--glass-border);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-radius:var(--r);padding:14px 18px;margin-bottom:14px;
+  display:flex;gap:20px;flex-wrap:wrap;box-shadow:var(--glass-shadow);}
+.rys-stat{text-align:center;}
+.rys-n{font-family:var(--font-condensed);font-size:26px;font-weight:700;color:var(--text);}
+.rys-l{font-size:11px;color:var(--tm);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;}
 /* receipt-row styles in glass system */
 .receipt-row-info{flex:1;min-width:0;}
 /* ── BUDGET INPUTS ── */
@@ -1927,14 +1947,22 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
     </div>
   </div>
 
-  <div class="sh">Receipt history
-    <span style="margin-left:8px;">
-      <button class="receipt-filter-btn active" id="rrf-all" onclick="filterReceipts('all')">All</button>
-      <button class="receipt-filter-btn" id="rrf-pending" onclick="filterReceipts('pending')">Pending approval</button>
-      <button class="receipt-filter-btn" id="rrf-approved" onclick="filterReceipts('approved')">Approved</button>
-      <button class="receipt-filter-btn" id="rrf-rejected" onclick="filterReceipts('rejected')">Rejected</button>
-    </span>
+  <div class="sh">Receipt history</div>
+
+  <!-- Year folder tabs -->
+  <div class="receipt-years" id="RECEIPT-years"></div>
+
+  <!-- Year summary bar -->
+  <div class="receipt-year-summary" id="RECEIPT-summary" style="display:none;"></div>
+
+  <!-- Status filters -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+    <button class="receipt-filter-btn active" id="rrf-all" onclick="filterReceipts('all')">All</button>
+    <button class="receipt-filter-btn" id="rrf-pending" onclick="filterReceipts('pending')">Pending approval</button>
+    <button class="receipt-filter-btn" id="rrf-approved" onclick="filterReceipts('approved')">Approved</button>
+    <button class="receipt-filter-btn" id="rrf-rejected" onclick="filterReceipts('rejected')">Rejected</button>
   </div>
+
   <div class="receipt-history" id="RH"></div>
 </div>
 
@@ -3140,30 +3168,6 @@ async function approveReceipt(){
   cancelReceipt();rReceipts();rBUD();rOV();
 }
 
-function rReceipts(){
-  const hist=document.getElementById('RH');
-  if(!receipts.length){hist.innerHTML=`<div style="font-size:13px;color:var(--tm);padding:16px 0;text-align:center;">No receipts yet. Snap one with the camera button above.</div>`;return;}
-  hist.innerHTML='';
-  [...receipts].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).forEach(r=>{
-    const sp=sponsors.find(s=>s.id===r.sponsor_id);
-    const ri=receiptItems.filter(i=>i.receipt_id===r.id);
-    const div=document.createElement('div');div.className='receipt-row';
-    const col=sp?avc(sp.name):'#374151';
-    const ini=sp?initials(sp.name):'?';
-    div.innerHTML=`
-      <div class="receipt-row-thumb" style="background:${col};display:flex;align-items:center;justify-content:center;font-family:var(--font-condensed);font-size:16px;font-weight:700;color:white;">${ini}</div>
-      <div class="receipt-row-info">
-        <div class="receipt-row-vendor">${esc(r.vendor||'Unknown vendor')}</div>
-        <div class="receipt-row-meta">${r.receipt_date||'No date'} · ${sp?esc(sp.name):'Unknown'} · ${ri.length} items</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div class="receipt-row-amt">${fmt$(r.total_amount)}</div>
-        <div class="receipt-row-status rs-${r.status||'pending'}" style="margin-top:3px;">${r.status||'pending'}</div>
-      </div>`;
-    hist.appendChild(div);
-  });
-}
-
 function syncSponsorDropdowns(){
   const options=sponsors.map(sp=>`<option value="${sp.id}">${esc(sp.name)}${sp.business_name?' ('+sp.business_name+')':''}</option>`).join('');
   ['RU-sponsor','RU-sponsor-m','PP-sponsor'].forEach(id=>{
@@ -3694,7 +3698,7 @@ async function saveAssign(id){
 
 function rAll(){
   ['fb','inv','mkt','gx','vol'].forEach(k=>{rT(k);rG(k);rR(k);renderCx(k);});
-  rSP();rBUD();rReceipts();rAssets();rShifts();rOV();
+  rSP();rBUD();rReceiptYears();rReceipts();rAssets();rShifts();rOV();
   rCommBudgetBars();
 }
 
@@ -5644,7 +5648,73 @@ setInterval(rMilestones, 60000);
 // ══════════════════════════════════════
 // ── RECEIPT APPROVAL WORKFLOW ──
 // ══════════════════════════════════════
+// ── RECEIPT YEAR FOLDERS ──
+let receiptYear = 2026; // default to current year
 let receiptFilter = 'all';
+
+function getReceiptYear(r) {
+  if (r.receipt_date) return new Date(r.receipt_date + 'T00:00:00').getFullYear();
+  if (r.created_at) return new Date(r.created_at).getFullYear();
+  return 2026;
+}
+
+function rReceiptYears() {
+  const el = document.getElementById('RECEIPT-years'); if (!el) return;
+
+  // Get all years present in receipts
+  const yearMap = {};
+  receipts.forEach(r => {
+    const y = getReceiptYear(r);
+    if (!yearMap[y]) yearMap[y] = { count:0, total:0 };
+    yearMap[y].count++;
+    yearMap[y].total += Number(r.total_amount||0);
+  });
+
+  // Always show current year even if empty
+  if (!yearMap[2026]) yearMap[2026] = { count:0, total:0 };
+
+  const years = Object.keys(yearMap).map(Number).sort((a,b)=>b-a);
+
+  el.innerHTML = years.map(y => {
+    const d = yearMap[y];
+    const isActive = y === receiptYear;
+    const isCurrent = y === new Date().getFullYear();
+    return `<div class="receipt-year-tab ${isActive?'active':''}" onclick="selectReceiptYear(${y})">
+      <div>
+        <div class="ryt-year">${y}</div>
+        <div class="ryt-meta">${isCurrent?'Current year':'Historical'}</div>
+      </div>
+      <span class="ryt-badge">${d.count} receipt${d.count!==1?'s':''}</span>
+    </div>`;
+  }).join('');
+
+  rReceiptSummary();
+}
+
+function selectReceiptYear(y) {
+  receiptYear = y;
+  filterReceipts('all'); // reset status filter when switching year
+  rReceiptYears();
+}
+
+function rReceiptSummary() {
+  const el = document.getElementById('RECEIPT-summary'); if (!el) return;
+  const yearReceipts = receipts.filter(r => getReceiptYear(r) === receiptYear);
+
+  if (!yearReceipts.length) { el.style.display='none'; return; }
+
+  const total = yearReceipts.reduce((s,r)=>s+Number(r.total_amount||0),0);
+  const approved = yearReceipts.filter(r=>r.status==='approved').reduce((s,r)=>s+Number(r.total_amount||0),0);
+  const pending = yearReceipts.filter(r=>(r.status||'pending')==='pending').length;
+
+  el.style.display = 'flex';
+  el.innerHTML = `
+    <div class="rys-stat"><div class="rys-n">${fmt$(total)}</div><div class="rys-l">Total ${receiptYear}</div></div>
+    <div class="rys-stat"><div class="rys-n">${fmt$(approved)}</div><div class="rys-l">Approved</div></div>
+    <div class="rys-stat"><div class="rys-n">${yearReceipts.length}</div><div class="rys-l">Receipts</div></div>
+    ${pending>0?`<div class="rys-stat"><div class="rys-n" style="color:var(--amber);">${pending}</div><div class="rys-l">Pending</div></div>`:''}
+    ${receiptYear===2025?`<div class="rys-stat"><div class="rys-n" style="font-size:14px;">📋</div><div class="rys-l">2025 Archive</div></div>`:''}`;
+}
 
 function filterReceipts(f) {
   receiptFilter = f;
@@ -5655,7 +5725,54 @@ function filterReceipts(f) {
 }
 
 function rReceipts() {
-  const hist = document.getElementById('RH');
+  const hist = document.getElementById('RH'); if (!hist) return;
+
+  // Filter by year first, then status
+  const yearFiltered = receipts.filter(r => getReceiptYear(r) === receiptYear);
+  const filtered = receiptFilter==='all'
+    ? yearFiltered
+    : yearFiltered.filter(r => (r.status||'pending') === receiptFilter);
+
+  if (!filtered.length) {
+    const isCurrentYear = receiptYear === new Date().getFullYear();
+    hist.innerHTML = `<div style="text-align:center;padding:32px 20px;color:var(--tm);">
+      <div style="font-size:36px;margin-bottom:10px;">🧾</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px;">
+        ${receiptFilter!=='all' ? `No ${receiptFilter} receipts in ${receiptYear}` : `No receipts in ${receiptYear}`}
+      </div>
+      ${isCurrentYear&&receiptFilter==='all'?`<div style="font-size:13px;">Upload your first 2026 receipt using the camera above.</div>`:''}
+    </div>`;
+    return;
+  }
+
+  hist.innerHTML = '';
+  [...filtered].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).forEach(r => {
+    const sp = sponsors.find(s=>s.id===r.sponsor_id);
+    const ri = receiptItems.filter(i=>i.receipt_id===r.id);
+    const status = r.status || 'pending';
+    const div = document.createElement('div');
+    div.className = `receipt-row ${status==='pending'?'pending-approval':status}`;
+    div.dataset.id = r.id;
+    const col = sp ? avc(sp.name) : '#374151';
+    const ini = sp ? initials(sp.name) : '?';
+    div.innerHTML = `
+      <div class="receipt-row-thumb" style="background:${col};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:white;">${ini}</div>
+      <div class="receipt-row-info">
+        <div class="receipt-row-vendor">${esc(r.vendor||'Unknown vendor')}</div>
+        <div class="receipt-row-meta">${r.receipt_date||'No date'} · ${sp?esc(sp.name):'Unknown'} · ${ri.length} items</div>
+        ${r.approval_note?`<div class="receipt-approval-note">${esc(r.approval_note)}</div>`:''}
+        ${status==='pending'?`<div class="rr-actions">
+          <button class="rr-action-btn rr-approve" onclick="approveReceiptPost('${r.id}')">✓ Approve</button>
+          <button class="rr-action-btn rr-reject" onclick="rejectReceiptPost('${r.id}')">✗ Reject</button>
+        </div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="receipt-row-amt">${fmt$(r.total_amount)}</div>
+        <div class="receipt-row-status rs-${status}" style="margin-top:3px;">${status}</div>
+      </div>`;
+    hist.appendChild(div);
+  });
+}
   if (!hist) return;
   const filtered = receiptFilter==='all'
     ? receipts
@@ -5701,7 +5818,7 @@ function rReceipts() {
 async function approveReceiptPost(id) {
   const r = receipts.find(x=>x.id===id); if (!r) return;
   r.status = 'approved';
-  rReceipts(); rBUD(); rOV();
+  rReceiptYears(); rReceipts(); rBUD(); rOV();
   toast('Receipt approved', `${r.vendor||'Receipt'} — ${fmt$(r.total_amount)}`, '');
   await sb.from('receipts').update({status:'approved',approved_by:presenceName||'Committee',approved_at:new Date().toISOString()}).eq('id',id);
   // Auto-sync actual_spend for all unlocked items across committees
@@ -6513,6 +6630,7 @@ function gp(id){
   currentPage=PANEL_NAMES[id]||id;
   if(id==='eventday'){fetchWeather();rMilestones();}
   if(id==='assets'){rFolders();rAssets();}
+  if(id==='receipts'){rReceiptYears();rReceipts();}
   if(presenceChannel&&presenceName){
     presenceChannel.track({id:SESSION_ID,name:presenceName,page:currentPage,joined_at:Date.now()});
   }
