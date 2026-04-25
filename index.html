@@ -1602,6 +1602,27 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 .fe-layout{display:flex;gap:14px;align-items:start;}
 .fe-main{flex:1;min-width:0;}
 @media(max-width:640px){.fe-layout{flex-direction:column;}.fe-sidebar{width:100%;}}
+
+/* ── FOLDER DRAG & DROP ── */
+.fe-sidebar-item.dragging{opacity:0.4;}
+.fe-sidebar-item.drag-over{background:rgba(37,99,235,0.15);outline:2px dashed var(--blue);border-radius:7px;}
+.fe-item.dragging{opacity:0.4;transform:scale(0.96);}
+.fe-item.drag-over{outline:2px dashed var(--blue);background:rgba(37,99,235,0.08);}
+.fe-list-row.dragging{opacity:0.4;}
+.fe-list-row.drag-over{background:rgba(37,99,235,0.08);outline:2px dashed var(--blue);}
+/* Folder indent in sidebar */
+.fe-sidebar-indent{padding-left:20px;}
+.fe-sidebar-children{border-left:2px solid var(--grb);margin-left:18px;padding-left:4px;}
+/* Move modal */
+.fe-move-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:800;display:none;align-items:center;justify-content:center;}
+.fe-move-overlay.open{display:flex;}
+.fe-move-modal{background:white;border-radius:var(--r-lg);padding:24px;width:min(400px,90vw);max-height:70vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.fe-move-modal h3{font-family:var(--font-condensed);font-size:18px;font-weight:700;margin-bottom:14px;}
+.fe-move-opt{padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;transition:background .1s;}
+.fe-move-opt:hover{background:var(--grl);}
+.fe-move-opt.active{background:var(--bl);color:var(--blue);font-weight:600;}
+.fe-move-indent{padding-left:20px;}
+
 </style>
 </head>
 <body>
@@ -2384,11 +2405,24 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
   </div><!-- end fe-layout -->
 </div>
 
+<!-- Move modal -->
+<div class="fe-move-overlay" id="FE-move-overlay" onclick="if(event.target.id==='FE-move-overlay')closeMoveModal()">
+  <div class="fe-move-modal">
+    <h3 id="FE-move-title">Move to…</h3>
+    <div id="FE-move-list"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeMoveModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmMove()">Move here</button>
+    </div>
+  </div>
+</div>
+
 <!-- Context menu -->
 <div class="fe-ctx" id="FE-ctx">
   <div class="fe-ctx-item" onclick="ctxOpen()">↗ Open</div>
   <div class="fe-ctx-item" onclick="ctxCopyLink()">🔗 Copy link</div>
   <div class="fe-ctx-item" onclick="ctxDownload()">⬇ Download</div>
+  <div class="fe-ctx-item" onclick="ctxMove()">📂 Move to…</div>
   <div class="fe-ctx-sep"></div>
   <div class="fe-ctx-item danger" onclick="ctxDelete()">🗑 Delete</div>
 </div>
@@ -3546,49 +3580,100 @@ let fePath = [{ id:'root', label:'Asset Library' }];
 let feSelected = new Set();
 let feCtxAsset = null;
 let currentAssetId = null;
-let customFolders = [];
 
 function rAssets() { feRender(); rSidebar(); }
 function filterAssets() {}
 function openAddAsset() {}
 function saveAsset() {}
 
-// ── FOLDER SIDEBAR ──
+// ── CUSTOM FOLDERS — NESTED + DRAG TO MOVE ──
+let customFolders = [];
+
+const MASTER_IDS = new Set(['root','company-logos','50-mile-march','design-files','marketing','event-xp','food-bev','inventory','apparel','media','receipts-docs','headshots','misc']);
+
 function getAllFolders() {
   return [
     ...FOLDERS,
-    ...customFolders.map(f => ({ id: f.id, label: f.label, icon: f.icon || '📁', custom: true }))
+    ...customFolders.map(f => ({ id:f.id, label:f.label, icon:f.icon||'📁', parent_id:f.parent_id||'root', custom:true }))
   ];
+}
+
+function getFolderChildren(parentId) {
+  const all = getAllFolders();
+  return all.filter(f => parentId === 'root' ? (!f.parent_id || f.parent_id === 'root') : f.parent_id === parentId);
 }
 
 function rSidebar() {
   const list = document.getElementById('FE-sidebar-list'); if (!list) return;
-  const all = getAllFolders();
-  list.innerHTML = all.map(f => {
+  list.innerHTML = '';
+  renderSidebarLevel(list, 'root', 0);
+}
+
+function renderSidebarLevel(container, parentId, depth) {
+  getFolderChildren(parentId).forEach(f => {
     const isActive = feFolder === f.id;
-    const count = f.id === 'root'
-      ? assets.filter(a => a.category !== 'folder').length
-      : assets.filter(a => a.folder === f.id && a.category !== 'folder').length;
-    return `<div class="fe-sidebar-item ${isActive ? 'active' : ''}" onclick="selectAssetFolder('${f.id}','${esc(f.label)}')">
-      <span style="font-size:15px;flex-shrink:0;">${f.icon}</span>
-      <span style="font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-        ondblclick="${f.custom ? `event.stopPropagation();renameSidebarFolder('${f.id}',this)` : ''}">
+    const count = assets.filter(a => a.folder === f.id && a.category !== 'folder').length;
+    const subChildren = getFolderChildren(f.id);
+
+    const wrap = document.createElement('div');
+    if (depth > 0) wrap.style.paddingLeft = (depth * 14) + 'px';
+
+    const item = document.createElement('div');
+    item.className = 'fe-sidebar-item' + (isActive ? ' active' : '');
+    item.dataset.folderId = f.id;
+    const _dbl = f.custom ? `ondblclick="event.stopPropagation();renameSidebarFolder('${f.id}',this)"` : '';
+    const _mov = f.custom ? `<button class="fe-sidebar-item-del" onclick="event.stopPropagation();openMoveFolder('${f.id}')" title="Move" style="color:var(--tm);">↔</button><button class="fe-sidebar-item-del" onclick="event.stopPropagation();deleteAssetFolder('${f.id}')" title="Delete">✕</button>` : '';
+    const _cnt = count ? `<span style="font-size:10px;color:${isActive?'rgba(37,99,235,0.6)':'var(--tt)'}">${count}</span>` : '';
+    item.innerHTML = `
+      <span style="font-size:14px;flex-shrink:0;">${f.icon||'📁'}</span>
+      <span style="font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ${_dbl}>
         ${esc(f.label)}
       </span>
-      <span style="font-size:10px;color:${isActive ? 'rgba(37,99,235,0.6)' : 'var(--tt)'};">${count || ''}</span>
-      ${f.custom ? `<button class="fe-sidebar-item-del" onclick="event.stopPropagation();deleteAssetFolder('${f.id}')" title="Delete folder">✕</button>` : ''}
-    </div>`;
-  }).join('');
+      ${_cnt}${_mov}`;
+
+    item.onclick = () => selectAssetFolder(f.id, f.label);
+
+    if (f.custom) {
+      item.draggable = true;
+      item.ondragstart = e => { e.dataTransfer.setData('folder-id', f.id); item.classList.add('dragging'); };
+      item.ondragend = () => item.classList.remove('dragging');
+    }
+    item.ondragover = e => { e.preventDefault(); item.classList.add('drag-over'); };
+    item.ondragleave = () => item.classList.remove('drag-over');
+    item.ondrop = async e => {
+      e.preventDefault(); e.stopPropagation(); item.classList.remove('drag-over');
+      const fid = e.dataTransfer.getData('folder-id');
+      const fileId = e.dataTransfer.getData('file-id');
+      if (fid && fid !== f.id) await moveFolderTo(fid, f.id);
+      if (fileId) await moveFileTo(fileId, f.id);
+    };
+
+    wrap.appendChild(item);
+    if (subChildren.length) {
+      const childWrap = document.createElement('div');
+      childWrap.style.cssText = 'border-left:2px solid var(--grb);margin-left:16px;padding-left:2px;';
+      renderSidebarLevel(childWrap, f.id, depth + 1);
+      wrap.appendChild(childWrap);
+    }
+    container.appendChild(wrap);
+  });
 }
 
 function selectAssetFolder(id, label) {
   feFolder = id;
-  fePath = id === 'root'
-    ? [{ id: 'root', label: 'Asset Library' }]
-    : [{ id: 'root', label: 'Asset Library' }, { id, label }];
+  fePath = buildPath(id);
   feSelected.clear();
   rSidebar();
   feRenderInner();
+}
+
+function buildPath(id) {
+  if (id === 'root') return [{ id:'root', label:'Asset Library' }];
+  const all = getAllFolders();
+  const folder = all.find(f => f.id === id);
+  if (!folder) return [{ id:'root', label:'Asset Library' }];
+  const parent = folder.parent_id && folder.parent_id !== 'root' ? buildPath(folder.parent_id) : [{ id:'root', label:'Asset Library' }];
+  return [...parent, { id, label: folder.label }];
 }
 
 async function loadAssetFolders() {
@@ -3599,8 +3684,9 @@ async function loadAssetFolders() {
 async function createAssetFolder() {
   const name = prompt('Folder name:');
   if (!name?.trim()) return;
+  const parentId = feFolder === 'root' ? 'root' : feFolder;
   const slug = name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').slice(0,40) + '-' + Date.now().toString(36);
-  const folder = { id: slug, label: name.trim(), icon: '📁', sort_order: 99 + customFolders.length, created_by: presenceName || 'Committee' };
+  const folder = { id:slug, label:name.trim(), icon:'📁', parent_id:parentId, sort_order:99+customFolders.length, created_by:presenceName||'Committee' };
   const { error } = await sb.from('asset_folders').insert(folder);
   if (error) { toast('Error', error.message, 'err'); return; }
   customFolders.push(folder);
@@ -3608,21 +3694,106 @@ async function createAssetFolder() {
   toast('Folder created', name.trim(), '');
 }
 
+function isDescendant(potentialChildId, ancestorId) {
+  let current = customFolders.find(f => f.id === potentialChildId);
+  while (current) {
+    if (current.parent_id === ancestorId) return true;
+    current = customFolders.find(f => f.id === current?.parent_id);
+  }
+  return false;
+}
+
+async function moveFolderTo(folderId, newParentId) {
+  if (MASTER_IDS.has(folderId)) { toast('Cannot move','Master folders are fixed','warn'); return; }
+  if (isDescendant(newParentId, folderId)) { toast('Cannot move','Cannot move a folder into itself','warn'); return; }
+  const idx = customFolders.findIndex(f => f.id === folderId);
+  if (idx !== -1) customFolders[idx].parent_id = newParentId;
+  rSidebar(); feRenderInner();
+  await sb.from('asset_folders').update({ parent_id: newParentId }).eq('id', folderId);
+  toast('Moved','','');
+}
+
+async function moveFileTo(fileId, targetFolderId) {
+  const a = assets.find(x => x.id === fileId); if (!a) return;
+  a.folder = targetFolderId;
+  feRenderInner(); rSidebar();
+  await sb.from('assets').update({ folder: targetFolderId }).eq('id', fileId);
+  toast('Moved', `→ \${getAllFolders().find(f=>f.id===targetFolderId)?.label||targetFolderId}`, '');
+}
+
+let moveTarget = null;
+let moveSelectedDest = null;
+
+function openMoveFolder(folderId) {
+  moveTarget = { type:'folder', id:folderId };
+  const folder = getAllFolders().find(f => f.id === folderId);
+  document.getElementById('FE-move-title').textContent = `Move "\${folder?.label||''}" to…`;
+  moveSelectedDest = null;
+  renderMoveList();
+  document.getElementById('FE-move-overlay').classList.add('open');
+}
+
+function ctxMove() {
+  if (!feCtxAsset) return;
+  moveTarget = { type:'file', id:feCtxAsset.id };
+  document.getElementById('FE-move-title').textContent = `Move "\${feCtxAsset.name}" to…`;
+  moveSelectedDest = null;
+  renderMoveList();
+  document.getElementById('FE-move-overlay').classList.add('open');
+  hideCtx();
+}
+
+function renderMoveList() {
+  const list = document.getElementById('FE-move-list'); if (!list) return;
+  list.innerHTML = '';
+  renderMoveLevel(list, 'root', 0);
+}
+
+function renderMoveLevel(container, parentId, depth) {
+  getFolderChildren(parentId).forEach(f => {
+    if (moveTarget?.type === 'folder' && (f.id === moveTarget.id || isDescendant(f.id, moveTarget.id))) return;
+    const div = document.createElement('div');
+    div.className = 'fe-move-opt' + (moveSelectedDest === f.id ? ' active' : '');
+    div.style.paddingLeft = (12 + depth * 16) + 'px';
+    div.innerHTML = `<span style="font-size:14px;">\${f.icon||'📁'}</span><span>\${esc(f.label)}</span>`;
+    div.onclick = () => { moveSelectedDest = f.id; renderMoveList(); };
+    container.appendChild(div);
+    renderMoveLevel(container, f.id, depth + 1);
+  });
+}
+
+async function confirmMove() {
+  if (!moveTarget || !moveSelectedDest) { toast('Select a destination first','','warn'); return; }
+  closeMoveModal();
+  if (moveTarget.type === 'folder') await moveFolderTo(moveTarget.id, moveSelectedDest);
+  else await moveFileTo(moveTarget.id, moveSelectedDest);
+}
+
+function closeMoveModal() {
+  document.getElementById('FE-move-overlay').classList.remove('open');
+  moveTarget = null; moveSelectedDest = null;
+}
+
 async function deleteAssetFolder(id) {
+  if (MASTER_IDS.has(id)) { toast('Cannot delete','Master folders are fixed','warn'); return; }
   const folder = customFolders.find(f => f.id === id);
   const fileCount = assets.filter(a => a.folder === id).length;
-  if (fileCount > 0) {
-    if (!confirm(`"${folder?.label}" has ${fileCount} file${fileCount !== 1 ? 's' : ''}. Delete anyway? Files will move to Misc.`)) return;
-    await sb.from('assets').update({ folder: 'misc' }).eq('folder', id);
+  const childCount = customFolders.filter(f => f.parent_id === id).length;
+  const msg = [fileCount>0?fileCount+' file'+(fileCount!==1?'s':''):'', childCount>0?childCount+' subfolder'+(childCount!==1?'s':''):''].filter(Boolean).join(' and ');
+  if (msg) {
+    if (!confirm(`"\${folder?.label}" has \${msg}. Delete? Contents move to Misc.`)) return;
+    await sb.from('assets').update({ folder:'misc' }).eq('folder', id);
     assets.forEach(a => { if (a.folder === id) a.folder = 'misc'; });
+    const children = customFolders.filter(f => f.parent_id === id);
+    for (const c of children) { await sb.from('asset_folders').update({ parent_id:'root' }).eq('id', c.id); c.parent_id = 'root'; }
   } else {
-    if (!confirm(`Delete folder "${folder?.label}"?`)) return;
+    if (!confirm(`Delete folder "\${folder?.label}"?`)) return;
   }
   await sb.from('asset_folders').delete().eq('id', id);
   customFolders = customFolders.filter(f => f.id !== id);
-  if (feFolder === id) selectAssetFolder('root', 'Asset Library');
+  if (feFolder === id) selectAssetFolder('root','Asset Library');
   else { rSidebar(); feRenderInner(); }
-  toast('Folder deleted', folder?.label || '', 'warn');
+  toast('Deleted', folder?.label||'', 'warn');
 }
 
 function renameSidebarFolder(id, el) {
@@ -3730,6 +3901,9 @@ function feRenderInner() {
         div.ondblclick = () => openAssetLightbox(item);
         div.onclick = (e) => { if(e.detail===1) feSelect(item.id, e); };
         div.oncontextmenu = (e) => { e.preventDefault(); feCtxAsset=item; showCtx(e.clientX, e.clientY); };
+        div.draggable = true;
+        div.ondragstart = e => { e.dataTransfer.setData('file-id', item.id); div.classList.add('dragging'); };
+        div.ondragend = () => div.classList.remove('dragging');
       }
       grid.appendChild(div);
     });
@@ -3770,6 +3944,9 @@ function feRenderInner() {
           <div class="fe-list-date">${fmtDate(item.created_at)}</div>`;
         row.ondblclick = () => openAssetLightbox(item);
         row.oncontextmenu = (e) => { e.preventDefault(); feCtxAsset=item; showCtx(e.clientX, e.clientY); };
+        row.draggable = true;
+        row.ondragstart = e => { e.dataTransfer.setData('file-id', item.id); row.classList.add('dragging'); };
+        row.ondragend = () => row.classList.remove('dragging');
       }
       row.onclick = (e) => { if(e.detail===1) feSelect(item.id, e); };
       list.appendChild(row);
