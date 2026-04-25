@@ -3628,8 +3628,7 @@ async function deleteAssetById(id, storagePath) {
 
 function copySelectedLinks() {
   const links = [...feSelected].map(id => assets.find(a=>a.id===id)?.file_url).filter(Boolean);
-  navigator.clipboard?.writeText(links.join('
-'));
+  navigator.clipboard?.writeText(links.join('\n'));
   toast('Copied', `${links.length} link${links.length!==1?'s':''} copied`, '');
   clearSelection();
 }
@@ -6306,47 +6305,6 @@ function rReceipts() {
         <div class="receipt-row-meta">${r.receipt_date||'No date'} · ${sp?esc(sp.name):'Unknown'} · ${ri.length} items</div>
         ${r.approval_note?`<div class="receipt-approval-note">${esc(r.approval_note)}</div>`:''}
         ${status==='pending'?`<div class="rr-actions">
-          <button class="rr-action-btn rr-approve" onclick="approveReceiptPost('${r.id}')">✓ Approve</button>
-          <button class="rr-action-btn rr-reject" onclick="rejectReceiptPost('${r.id}')">✗ Reject</button>
-        </div>`:''}
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div class="receipt-row-amt">${fmt$(r.total_amount)}</div>
-        <div class="receipt-row-status rs-${status}" style="margin-top:3px;">${status}</div>
-      </div>`;
-    hist.appendChild(div);
-  });
-}
-  if (!hist) return;
-  const filtered = receiptFilter==='all'
-    ? receipts
-    : receipts.filter(r => (r.status||'pending') === receiptFilter);
-
-  if (!filtered.length) {
-    hist.innerHTML = `<div style="font-size:13px;color:var(--tm);padding:16px 0;text-align:center;">${
-      receipts.length ? 'No receipts match this filter.' : 'No receipts yet. Snap one with the camera button above.'
-    }</div>`;
-    return;
-  }
-
-  hist.innerHTML = '';
-  [...filtered].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).forEach(r => {
-    const sp = sponsors.find(s=>s.id===r.sponsor_id);
-    const ri = receiptItems.filter(i=>i.receipt_id===r.id);
-    const status = r.status || 'pending';
-    const isChair = true; // All committee members can approve in this trust model
-    const div = document.createElement('div');
-    div.className = `receipt-row ${status==='pending'?'pending-approval':status}`;
-    div.dataset.id = r.id;
-    const col = sp ? avc(sp.name) : '#374151';
-    const ini = sp ? initials(sp.name) : '?';
-    div.innerHTML = `
-      <div class="receipt-row-thumb" style="background:${col};display:flex;align-items:center;justify-content:center;font-family:var(--font-condensed);font-size:16px;font-weight:700;color:white;">${ini}</div>
-      <div class="receipt-row-info">
-        <div class="receipt-row-vendor">${esc(r.vendor||'Unknown vendor')}</div>
-        <div class="receipt-row-meta">${r.receipt_date||'No date'} · ${sp?esc(sp.name):'Unknown'} · ${ri.length} items</div>
-        ${r.approval_note?`<div class="receipt-approval-note">${esc(r.approval_note)}</div>`:''}
-        ${status==='pending'&&isChair?`<div class="rr-actions">
           <button class="rr-action-btn rr-approve" onclick="approveReceiptPost('${r.id}')">✓ Approve</button>
           <button class="rr-action-btn rr-reject" onclick="rejectReceiptPost('${r.id}')">✗ Reject</button>
         </div>`:''}
