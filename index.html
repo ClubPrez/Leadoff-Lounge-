@@ -1518,6 +1518,9 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
       <button class="auth-btn-secondary" onclick="resetAuthForm()" style="margin-top:20px;">Use a different email</button>
     </div>
     <div class="auth-footer">Private event — steering committee only.<br>Contact Chris Harwood if you need access.</div>
+    <div id="AUTH-browser-warn" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;font-size:12px;color:#fbbf24;line-height:1.5;">
+      ⚠️ For the best experience, open this dashboard in <strong>Google Chrome</strong> or <strong>Safari</strong>. Some browsers may block the login flow.
+    </div>
   </div>
 </div>
 
@@ -2093,21 +2096,55 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
 
 <!-- ASSETS -->
 <div class="panel" id="panel-assets">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-    <div style="font-family:var(--font-condensed);font-size:22px;font-weight:700;">Asset Library</div>
-    <button class="btn btn-primary" onclick="openAddAsset()">+ Add asset</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-family:var(--font-condensed);font-size:24px;font-weight:700;">Asset Library</div>
+      <div style="font-size:13px;color:var(--tm);" id="ASSET-breadcrumb">All folders</div>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('ASSET-file-input').click()" style="font-size:13px;">⬆ Upload file</button>
   </div>
-  <div class="al al-b" style="margin-bottom:14px;"><strong>Phase 1:</strong> Add assets by URL. Phase 2 will add direct file upload (logos, videos, mockups) via Supabase Storage.</div>
-  <div class="asset-cats" id="ACats">
-    <div class="acat active" onclick="filterAssets('all')">All</div>
-    <div class="acat" onclick="filterAssets('logo')">Logos</div>
-    <div class="acat" onclick="filterAssets('mockup')">Mockups</div>
-    <div class="acat" onclick="filterAssets('video')">Videos</div>
-    <div class="acat" onclick="filterAssets('web')">Web assets</div>
-    <div class="acat" onclick="filterAssets('photo')">Photos</div>
-    <div class="acat" onclick="filterAssets('other')">Other</div>
+
+  <input type="file" id="ASSET-file-input" multiple accept="*/*" onchange="handleAssetUpload(this.files)">
+
+  <div class="asset-layout">
+    <!-- Folder sidebar -->
+    <div class="folder-sidebar">
+      <div class="folder-sidebar-head">Folders</div>
+      <div id="FOLDER-list"></div>
+    </div>
+
+    <!-- Main area -->
+    <div>
+      <div class="upload-zone" id="ASSET-upload-zone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="this.classList.remove('drag');handleAssetUpload(event.dataTransfer.files)"
+        onclick="document.getElementById('ASSET-file-input').click()">
+        <div class="upload-zone-icon">📁</div>
+        <div class="upload-zone-text">Drop files here or click to upload</div>
+        <div class="upload-zone-sub">Images, videos, PDFs, design files — up to 500MB</div>
+      </div>
+      <div class="upload-progress" id="ASSET-progress">
+        <div class="upload-progress-name" id="ASSET-progress-name">Uploading…</div>
+        <div class="upload-progress-bar"><div class="upload-progress-fill" id="ASSET-progress-fill" style="width:0%"></div></div>
+      </div>
+      <div class="asset-grid" id="AG"></div>
+    </div>
   </div>
-  <div class="asset-grid" id="AG"></div>
+</div>
+
+<!-- Asset lightbox -->
+<div class="asset-lightbox" id="ASSET-lightbox" onclick="if(event.target===this)closeAssetLightbox()">
+  <button class="asset-lb-close" onclick="closeAssetLightbox()">✕</button>
+  <img class="asset-lb-img" id="ASSET-lb-img" style="display:none;">
+  <video class="asset-lb-img" id="ASSET-lb-video" controls style="display:none;"></video>
+  <div id="ASSET-lb-icon" style="display:none;font-size:80px;text-align:center;"></div>
+  <div class="asset-lb-meta" id="ASSET-lb-meta"></div>
+  <div class="asset-lb-actions">
+    <a class="asset-lb-btn" id="ASSET-lb-download" href="#" target="_blank">⬇ Download</a>
+    <button class="asset-lb-btn" onclick="copyAssetUrl()">🔗 Copy link</button>
+    <button class="asset-lb-btn danger" onclick="deleteCurrentAsset()">🗑 Delete</button>
+  </div>
 </div>
 
 <!-- ATTENDEES -->
@@ -3140,46 +3177,226 @@ function syncSponsorDropdowns(){
 function updateSponsorDropdown(){syncSponsorDropdowns();}
 
 // ── ASSETS ──
-function rAssets(){
-  const grid=document.getElementById('AG');grid.innerHTML='';
-  const filtered=assetFilter==='all'?assets:assets.filter(a=>a.category===assetFilter);
-  if(!filtered.length){
-    grid.innerHTML=`<div class="add-asset-card" onclick="openAddAsset()" style="border-radius:var(--r);border:2px dashed var(--grb);">
-      <div style="font-size:32px;">+</div><span>Add first asset</span></div>`;
+const SB_STORAGE_URL = `${SBU}/storage/v1/object/public/leadoff-assets/`;
+const FOLDERS = [
+  { id:'all',       label:'All Files',         icon:'🗂️' },
+  { id:'company-logos', label:'Company Logos', icon:'🏢' },
+  { id:'50-mile-march', label:'50 Mile March', icon:'🏃' },
+  { id:'design-files',  label:'Design Files',  icon:'🎨' },
+  { id:'marketing',     label:'Marketing',     icon:'📣' },
+  { id:'event-xp',      label:'Event Experience', icon:'🎪' },
+  { id:'food-bev',      label:'Food & Bev',    icon:'🍔' },
+  { id:'inventory',     label:'Inventory',     icon:'📦' },
+  { id:'apparel',       label:'Jerseys & Apparel', icon:'👕' },
+  { id:'media',         label:'Photos & Video',icon:'📸' },
+  { id:'receipts-docs', label:'Receipts & Docs',icon:'🧾' },
+  { id:'headshots',     label:'Headshots',     icon:'👤' },
+  { id:'misc',          label:'Misc',          icon:'📁' },
+];
+
+let currentFolder = 'all';
+let currentAssetId = null;
+const FILE_ICONS = {
+  'pdf':'📄','doc':'📝','docx':'📝','xls':'📊','xlsx':'📊',
+  'ppt':'📋','pptx':'📋','zip':'🗜️','ai':'🎨','psd':'🎨',
+  'mp4':'🎬','mov':'🎬','mp3':'🎵','svg':'🖼️','fig':'🎨',
+};
+
+function getFileIcon(name='', mime='') {
+  const ext = name.split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] || (mime.startsWith('image')?'🖼️':mime.startsWith('video')?'🎬':mime.startsWith('audio')?'🎵':'📄');
+}
+
+function formatBytes(b) {
+  if (!b) return '';
+  if (b < 1024) return b+'B';
+  if (b < 1048576) return Math.round(b/1024)+'KB';
+  return (b/1048576).toFixed(1)+'MB';
+}
+
+function rFolders() {
+  const list = document.getElementById('FOLDER-list'); if (!list) return;
+  list.innerHTML = FOLDERS.map(f => {
+    const count = f.id==='all' ? assets.filter(a=>a.category!=='folder').length
+      : assets.filter(a=>a.folder===f.id&&a.category!=='folder').length;
+    return `<div class="folder-item ${currentFolder===f.id?'active':''}" onclick="selectAssetFolder('${f.id}')">
+      <span class="folder-icon">${f.icon}</span>
+      <span class="folder-name">${f.label}</span>
+      ${count>0?`<span class="folder-count">${count}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectAssetFolder(id) {
+  currentFolder = id;
+  const folder = FOLDERS.find(f=>f.id===id);
+  document.getElementById('ASSET-breadcrumb').textContent = folder ? folder.label : 'All files';
+  rFolders();
+  rAssets();
+}
+
+function rAssets() {
+  const grid = document.getElementById('AG'); if (!grid) return;
+  const filtered = currentFolder==='all'
+    ? assets.filter(a=>a.category!=='folder')
+    : assets.filter(a=>a.folder===currentFolder&&a.category!=='folder');
+
+  if (!filtered.length) {
+    const folder = FOLDERS.find(f=>f.id===currentFolder);
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;">
+      <div style="font-size:40px;margin-bottom:12px;">${folder?.icon||'📁'}</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px;">${folder?.label||'Folder'} is empty</div>
+      <div style="font-size:13px;color:var(--tm);">Drop files above or click Upload to add files here</div>
+    </div>`;
     return;
   }
-  filtered.forEach(a=>{
-    const isVideo=a.file_type&&a.file_type.includes('video');
-    const isImg=a.file_url&&(a.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i)||a.category==='logo'||a.category==='mockup');
-    const icons={logo:'🏷️',mockup:'🖼️',video:'🎬',web:'🌐',photo:'📷',other:'📁'};
-    const div=document.createElement('div');div.className='asset-card';
-    div.innerHTML=`
+
+  grid.innerHTML = '';
+  filtered.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).forEach(a => {
+    const isImg = a.mime_type?.startsWith('image') || a.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+    const isVideo = a.mime_type?.startsWith('video') || a.file_url?.match(/\.(mp4|mov|webm)/i);
+    const icon = getFileIcon(a.name, a.mime_type||'');
+    const ext = (a.name||'').split('.').pop().toUpperCase().slice(0,4);
+    const div = document.createElement('div');
+    div.className = 'asset-card';
+    div.onclick = () => openAssetLightbox(a);
+    div.innerHTML = `
       <div class="asset-thumb">
-        ${isImg?`<img src="${esc(a.file_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`:isVideo?`<video src="${esc(a.file_url)}" style="width:100%;height:100%;object-fit:cover;"></video>`:`<span style="font-size:40px;">${icons[a.category]||'📁'}</span>`}
-        <div class="asset-cat-badge">${(a.category||'other').toUpperCase()}</div>
+        ${isImg ? `<img src="${esc(a.file_url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="asset-thumb-icon" style="display:none;align-items:center;justify-content:center;">${icon}</div>`
+        : isVideo ? `<video src="${esc(a.file_url)}" style="width:100%;height:100%;object-fit:cover;"></video>`
+        : `<div class="asset-thumb-icon" style="display:flex;align-items:center;justify-content:center;">${icon}</div>`}
+        ${ext?`<div class="asset-type-badge">${ext}</div>`:''}
       </div>
       <div class="asset-body">
         <div class="asset-name" title="${esc(a.name)}">${esc(a.name)||'Unnamed'}</div>
-        <div class="asset-meta">${a.file_url?`<a href="${esc(a.file_url)}" target="_blank" style="color:var(--blue);font-size:11px;">Open →</a>`:'No URL'}</div>
+        <div class="asset-meta">${formatBytes(a.file_size)}${a.uploaded_by?` · ${esc(a.uploaded_by)}`:''}</div>
       </div>`;
     grid.appendChild(div);
   });
 }
-function filterAssets(cat){
-  assetFilter=cat;
-  document.querySelectorAll('.acat').forEach(el=>el.classList.toggle('active',el.textContent.toLowerCase().replace(' ','')===cat||el.textContent==='All'&&cat==='all'));
-  rAssets();
+
+async function handleAssetUpload(files) {
+  if (!files?.length) return;
+  const folder = currentFolder==='all' ? 'misc' : currentFolder;
+  const progress = document.getElementById('ASSET-progress');
+  const progressName = document.getElementById('ASSET-progress-name');
+  const progressFill = document.getElementById('ASSET-progress-fill');
+
+  for (const file of Array.from(files)) {
+    progress.style.display = 'block';
+    progressName.textContent = `Uploading ${file.name}…`;
+    progressFill.style.width = '10%';
+
+    try {
+      const path = `${folder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await sb.storage
+        .from('leadoff-assets')
+        .upload(path, file, { cacheControl:'3600', upsert:false });
+
+      if (error) throw error;
+      progressFill.style.width = '70%';
+
+      // Get public URL
+      const { data: urlData } = sb.storage.from('leadoff-assets').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+      progressFill.style.width = '85%';
+
+      // Save to assets table
+      const assetData = {
+        name: file.name,
+        folder,
+        category: file.type.startsWith('image')?'photo':file.type.startsWith('video')?'video':'other',
+        file_url: publicUrl,
+        storage_path: path,
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_by: presenceName || 'Committee',
+        description: '',
+      };
+      const { data: asset } = await sb.from('assets').insert(assetData).select().single();
+      if (asset) assets.unshift(asset);
+
+      progressFill.style.width = '100%';
+      toast('Uploaded', file.name, '');
+
+      // Auto-backup receipts to receipts-docs folder
+      if (folder === 'receipts-docs') {
+        // Already in the right place
+      }
+
+      rAssets(); rFolders();
+    } catch(e) {
+      toast('Upload failed', e.message || 'Try again', 'err');
+      console.error(e);
+    }
+  }
+
+  setTimeout(() => { progress.style.display='none'; progressFill.style.width='0%'; }, 1200);
+  // Reset file input
+  document.getElementById('ASSET-file-input').value = '';
 }
-function openAddAsset(){
-  const name=prompt('Asset name:');if(!name)return;
-  const url=prompt('URL (paste link to file or leave blank):');
-  const cat=prompt('Category (logo, mockup, video, web, photo, other):','other');
-  if(name)saveAsset({name,file_url:url||'',category:cat||'other'});
+
+function openAssetLightbox(asset) {
+  currentAssetId = asset.id;
+  const lb = document.getElementById('ASSET-lightbox');
+  const img = document.getElementById('ASSET-lb-img');
+  const video = document.getElementById('ASSET-lb-video');
+  const icon = document.getElementById('ASSET-lb-icon');
+  const meta = document.getElementById('ASSET-lb-meta');
+  const dl = document.getElementById('ASSET-lb-download');
+
+  const isImg = asset.mime_type?.startsWith('image') || asset.file_url?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
+  const isVideo = asset.mime_type?.startsWith('video') || asset.file_url?.match(/\.(mp4|mov|webm)/i);
+
+  img.style.display = isImg ? 'block' : 'none';
+  video.style.display = isVideo ? 'block' : 'none';
+  icon.style.display = (!isImg&&!isVideo) ? 'block' : 'none';
+
+  if (isImg) img.src = asset.file_url;
+  else if (isVideo) video.src = asset.file_url;
+  else icon.textContent = getFileIcon(asset.name, asset.mime_type||'');
+
+  const folder = FOLDERS.find(f=>f.id===asset.folder);
+  meta.innerHTML = `<strong>${esc(asset.name)}</strong><br>
+    ${folder?.label||''}${asset.file_size?` · ${formatBytes(asset.file_size)}`:''}
+    ${asset.uploaded_by?` · Uploaded by ${esc(asset.uploaded_by)}`:''}`;
+
+  dl.href = asset.file_url;
+  dl.download = asset.name;
+  lb.classList.add('open');
 }
-async function saveAsset(data){
-  const{data:a}=await sb.from('assets').insert(data).select().single();
-  if(a){assets.push(a);rAssets();}
+
+function closeAssetLightbox() {
+  document.getElementById('ASSET-lightbox').classList.remove('open');
+  document.getElementById('ASSET-lb-video').src = '';
+  currentAssetId = null;
 }
+
+function copyAssetUrl() {
+  const a = assets.find(x=>x.id===currentAssetId);
+  if (a?.file_url) { navigator.clipboard?.writeText(a.file_url); toast('Copied', 'Link copied to clipboard',''); }
+}
+
+async function deleteCurrentAsset() {
+  const a = assets.find(x=>x.id===currentAssetId); if (!a) return;
+  if (!confirm(`Delete "${a.name}"? This cannot be undone.`)) return;
+  closeAssetLightbox();
+  if (a.storage_path) {
+    await sb.storage.from('leadoff-assets').remove([a.storage_path]);
+  }
+  await sb.from('assets').delete().eq('id', a.id);
+  assets = assets.filter(x=>x.id!==a.id);
+  rAssets(); rFolders();
+  toast('Deleted', a.name, 'warn');
+}
+
+// Legacy compat
+function filterAssets(){}
+function openAddAsset(){}
+function saveAsset(data){ handleAssetUpload([]); }
 
 // ── COMMITTEE PANELS ──
 function renderCx(k){
@@ -6148,6 +6365,13 @@ function showAuthScreen() {
   if (screen) {
     screen.style.display = 'flex';
     setTimeout(() => document.getElementById('AUTH-email')?.focus(), 100);
+    // Show browser warning for non-standard browsers
+    const ua = navigator.userAgent;
+    const isChrome = ua.includes('Chrome') && !ua.includes('Edg');
+    const isSafari = ua.includes('Safari') && !ua.includes('Chrome');
+    const isFirefox = ua.includes('Firefox');
+    const warn = document.getElementById('AUTH-browser-warn');
+    if (warn && !isChrome && !isSafari) warn.style.display = 'block';
   }
 }
 
@@ -6288,6 +6512,7 @@ function gp(id){
 
   currentPage=PANEL_NAMES[id]||id;
   if(id==='eventday'){fetchWeather();rMilestones();}
+  if(id==='assets'){rFolders();rAssets();}
   if(presenceChannel&&presenceName){
     presenceChannel.track({id:SESSION_ID,name:presenceName,page:currentPage,joined_at:Date.now()});
   }
@@ -6474,6 +6699,7 @@ async function init(){
   rComms();
   rCampaigns();
   rVendors();
+  rFolders();
   rAttendees();
   rAnnouncements();
   updateBanner();
@@ -6503,7 +6729,6 @@ async function init(){
   initPresence();
 }
 // Auth gates the app — init() is called from onSignedIn() after authentication
-document.getElementById('LS').style.display='none';
 initAuth();
 </script>
 </body>
