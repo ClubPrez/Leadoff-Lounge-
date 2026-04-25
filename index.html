@@ -1767,7 +1767,7 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;
           onclick="document.getElementById('PD-file-input').click()">
           <div class="proj-drop-zone-icon">📎</div>
           <div class="proj-drop-zone-text">Drop files or click to upload</div>
-          <div class="proj-drop-zone-sub">≤10MB → Supabase · Larger → Google Drive · Automatic</div>
+          <div class="proj-drop-zone-sub">≤500MB → Supabase · Larger → Google Drive · Automatic</div>
         </div>
         <input type="file" id="PD-file-input" multiple accept="*/*" style="display:none;" onchange="projHandleFiles(this.files)">
 
@@ -5203,7 +5203,7 @@ async function updateProjField(field,value){
 }
 
 // ── GALLERY ──
-const PROJ_SIZE_THRESHOLD = 10 * 1024 * 1024; // 10MB — below goes Supabase, above goes Drive
+const PROJ_SIZE_THRESHOLD = 500 * 1024 * 1024; // 500MB — everything under goes Supabase, over goes Drive
 
 function projDragOver(e) {
   e.preventDefault();
