@@ -3353,7 +3353,7 @@ async function analyzePhoto(){
     await new Promise(r=>setTimeout(r,400)); // let step 1 render
     setStep(2);
 
-    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy',{
+    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy-v2',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -6182,7 +6182,7 @@ Return ONLY a JSON array (no markdown) of changes needed:
 Rules: Only include entries that need to be added or changed. Skip decisions already accurately captured.`;
 
   try{
-    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy',{
+    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy-v2',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt,max_tokens:2000})
     });
@@ -6349,9 +6349,9 @@ RULES:
 
   try{
     setMtgStep(2);
-    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy',{
+    const resp=await fetch('https://lcqevefzbotmxtjbpgvl.supabase.co/functions/v1/ai-proxy-v2',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt,model:'claude-sonnet-4-5',max_tokens:4000})
+      body:JSON.stringify({prompt,model:'claude-sonnet-4-5',max_tokens:8000})
     });
     setMtgStep(3);
     const d=await resp.json();
@@ -6364,12 +6364,31 @@ RULES:
       throw new Error('No response from AI — check that ANTHROPIC_API_KEY is set in Supabase Edge Function secrets');
     }
 
-    const txt=d.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
-    if(!txt){throw new Error('Empty response from AI');}
+    // Extract text and clean it up robustly
+    let txt=d.content?.map(c=>c.text||'').join('');
+    // Strip markdown code fences
+    txt=txt.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    // Find the first { to start of JSON in case Claude added preamble
+    const jsonStart=txt.indexOf('{');
+    const jsonEnd=txt.lastIndexOf('}');
+    if(jsonStart===-1||jsonEnd===-1)throw new Error('AI did not return JSON — try again');
+    txt=txt.slice(jsonStart,jsonEnd+1);
 
     let result;
     try{result=JSON.parse(txt);}
-    catch(e){throw new Error('AI returned invalid JSON — try again or shorten the transcript');}
+    catch(e){
+      // Last resort: try to fix common JSON issues
+      try{
+        const cleaned=txt
+          .replace(/[\u2018\u2019]/g,"'")   // curly single quotes
+          .replace(/[\u201C\u201D]/g,'"')   // curly double quotes
+          .replace(/\u2014/g,'--')           // em dash
+          .replace(/\u2013/g,'-');           // en dash
+        result=JSON.parse(cleaned);
+      }catch(e2){
+        throw new Error('AI returned invalid JSON — try again or shorten the transcript');
+      }
+    }
 
     setMtgStep(4);
     await new Promise(r=>setTimeout(r,400));
